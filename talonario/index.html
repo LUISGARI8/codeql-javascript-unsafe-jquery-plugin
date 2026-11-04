@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}</style>
+</head>
+<body>
+<title>Talonario de Rifas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Figtree:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap">
+<style>
+/* Layout: una franja superior con la rifa activa, luego el talonario como cuadrícula de boletas perforadas; el detalle de cada número abre como talón desprendible. */
+:root{
+  --paper:#f6f1e3; --stock:#fffaf0; --ink:#1f3b2f; --ink-soft:#4f6a5d; --rule:#d9cfb6;
+  --ochre:#c98a12; --ochre-bg:#fbedc9; --paid:#1f6b45; --paid-bg:#dcefe3; --danger:#a3361f;
+  --accent:#1f6b45; --on-accent:#ffffff; --shadow:rgba(31,59,47,.12);
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"Courier Prime","Courier New",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#141b17; --stock:#1c2520; --ink:#eae4d2; --ink-soft:#a9b5ab; --rule:#33413a;
+  --ochre:#e9b34a; --ochre-bg:#3a2f16; --paid:#7fd3a4; --paid-bg:#173826; --danger:#f08a6f;
+  --accent:#7fd3a4; --on-accent:#0f1a14; --shadow:rgba(0,0,0,.4); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#141b17; --stock:#1c2520; --ink:#eae4d2; --ink-soft:#a9b5ab; --rule:#33413a;
+  --ochre:#e9b34a; --ochre-bg:#3a2f16; --paid:#7fd3a4; --paid-bg:#173826; --danger:#f08a6f;
+  --accent:#7fd3a4; --on-accent:#0f1a14; --shadow:rgba(0,0,0,.4); color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+.wrap{max-width:1080px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--f-display);font-weight:800;letter-spacing:.01em;text-wrap:balance;margin:0;line-height:1}
+h1{font-size:2.4rem;text-transform:uppercase}
+h2{font-size:1.8rem}
+h3{font-size:1.3rem}
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.top p{margin:4px 0 0;color:var(--ink-soft)}
+.mode{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);display:inline-flex;align-items:center;gap:6px}
+.mode::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ochre)}
+.mode.online::before{background:var(--paid)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+select,input{font:inherit;color:var(--ink);background:var(--stock);border:1.5px solid var(--rule);border-radius:8px;padding:10px 12px;min-width:0;width:100%}
+select:focus-visible,input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--ochre);outline-offset:2px}
+.bar select{width:auto;max-width:100%;flex:1 1 220px}
+button,.btn{font:inherit;font-weight:600;border-radius:8px;padding:10px 16px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-align:center}
+button.primary,.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+button.warn{border-color:var(--ochre);color:var(--ink);background:var(--ochre-bg)}
+button.ghost{border-color:var(--rule)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.btn.wa{background:var(--paid);border-color:var(--paid);color:var(--on-accent)}
+/* rifa card */
+.rifa{background:var(--stock);border:1.5px solid var(--rule);border-radius:12px;display:grid;grid-template-columns:1fr auto;overflow:hidden;box-shadow:0 2px 0 var(--shadow)}
+.rifa-main{padding:18px 20px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.rifa-main .meta{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--ink-soft);font-size:.92rem}
+.rifa-main .meta b{color:var(--ink);font-weight:600}
+.rifa-stub{border-left:2px dashed var(--rule);padding:18px 20px;display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:150px;background:var(--ochre-bg)}
+.lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft)}
+.big{font-family:var(--f-display);font-weight:800;font-size:1.9rem;line-height:1;font-variant-numeric:tabular-nums}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.stat{background:var(--stock);border:1.5px solid var(--rule);border-radius:10px;padding:10px 12px}
+.stat .big{font-size:1.6rem}
+.stat.paid{border-color:var(--paid)} .stat.res{border-color:var(--ochre)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{border:1.5px solid var(--rule);border-radius:999px;padding:6px 14px;font-weight:600;font-size:.9rem;background:transparent}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.filters input{width:auto;flex:1 1 160px}
+/* grid of tickets */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:6px}
+.n{position:relative;font-family:var(--f-display);font-weight:800;font-size:1.25rem;padding:12px 0 10px;border-radius:6px;border:1.5px solid var(--rule);background:var(--stock);color:var(--ink);font-variant-numeric:tabular-nums;cursor:pointer;line-height:1}
+.n::before,.n::after{content:"";position:absolute;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--paper);border:1.5px solid var(--rule)}
+.n::before{left:-5px;clip-path:inset(0 0 0 50%)} .n::after{right:-5px;clip-path:inset(0 50% 0 0)}
+.n:hover{border-color:var(--ink)}
+.n.res{background:var(--ochre-bg);border-color:var(--ochre)}
+.n.paid{background:var(--paid-bg);border-color:var(--paid);color:var(--paid)}
+.n.paid .tag{position:absolute;left:0;right:0;bottom:2px;font-family:var(--f-body);font-size:.55rem;letter-spacing:.08em;font-weight:700}
+.empty{background:var(--stock);border:1.5px dashed var(--rule);border-radius:12px;padding:28px 20px;display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.empty p{margin:0;max-width:60ch;color:var(--ink-soft)}
+.note{font-size:.85rem;color:var(--ink-soft);margin:0}
+/* sheet */
+.overlay{position:fixed;inset:0;background:rgba(10,20,15,.45);display:flex;align-items:center;justify-content:center;z-index:20;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet{background:var(--stock);color:var(--ink);border-radius:14px;width:100%;max-width:520px;max-height:100%;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px;border-bottom:2px dashed var(--rule)}
+.sheet-body{padding:18px 20px 20px;display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:.82rem;font-weight:600}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.actions>*{flex:1 1 150px}
+.x{border:none;font-size:1.4rem;padding:4px 10px;line-height:1}
+.pill{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:var(--rule);color:var(--ink)}
+.pill.res{background:var(--ochre-bg);color:var(--ink);border:1px solid var(--ochre)}
+.pill.paid{background:var(--paid-bg);color:var(--paid);border:1px solid var(--paid)}
+.recibo{font-family:var(--f-mono);background:var(--paper);border:1.5px solid var(--rule);border-radius:8px;padding:14px 16px;white-space:pre-wrap;word-break:break-word;font-size:.88rem;position:relative}
+.recibo .sello{position:absolute;right:12px;top:10px;border:2px solid var(--paid);color:var(--paid);font-family:var(--f-display);font-weight:800;font-size:1rem;padding:2px 8px;transform:rotate(-8deg);border-radius:4px;letter-spacing:.06em}
+.err{color:var(--danger);font-weight:600;margin:0}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:999px;font-weight:600;z-index:30;max-width:calc(100% - 32px)}
+@media (max-width:640px){
+  h1{font-size:1.9rem}
+  .rifa{grid-template-columns:1fr}
+  .rifa-stub{border-left:none;border-top:2px dashed var(--rule);flex-direction:row;align-items:baseline;justify-content:flex-start;gap:10px;flex-wrap:wrap}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .row{grid-template-columns:1fr}
+  .overlay{align-items:flex-end;padding:0}
+  .sheet{border-radius:14px 14px 0 0;max-height:92%;padding-bottom:env(safe-area-inset-bottom,0px)}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(52px,1fr))}
+}
+@media (prefers-reduced-motion:no-preference){.n{transition:transform .12s,border-color .12s}.n:active{transform:scale(.95)}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Talonario de Rifas</h1>
+      <p>Marca los números que vendes, cobra por Nequi y envía el comprobante por WhatsApp.</p>
+    </div>
+    <span id="mode" class="mode">Conectando…</span>
+  </header>
+
+  <div class="bar">
+    <select id="rifaSel" aria-label="Rifa activa"><option value="">Cargando rifas…</option></select>
+    <button id="nuevaBtn" class="primary" type="button">+ Nueva rifa</button>
+  </div>
+
+  <main id="main">
+    <div class="empty">
+      <h2>Cargando el talonario</h2>
+      <p>Aquí aparecerán tus rifas y sus números.</p>
+    </div>
+  </main>
+</div>
+
+<div id="overlay" class="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head"><h2 id="sheetTitle">Número</h2><button class="x" type="button" id="closeBtn" aria-label="Cerrar">×</button></div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </div>
+</div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+(function(){
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = v => "$" + Number(v||0).toLocaleString("es-CO");
+const digits = s => String(s||"").replace(/\D/g,"");
+function waPhone(p){ let d = digits(p); if (d.length === 10 && d[0] === "3") d = "57" + d; return d; }
+function pad(n, total){ return String(n).padStart(String(total-1).length, "0"); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fechaHoy(){ return new Date().toLocaleString("es-CO",{dateStyle:"medium",timeStyle:"short"}); }
+
+/* ---------- Almacenamiento: base compartida (db) o este dispositivo ---------- */
+function localStore(){
+  const K = "talonario-v1";
+  let state = { rifas:{}, numeros:{} };
+  try { const raw = localStorage.getItem(K); if (raw) state = JSON.parse(raw); } catch(e){}
+  const subsR = new Set(), subsN = new Map();
+  const save = () => { try { localStorage.setItem(K, JSON.stringify(state)); } catch(e){} };
+  const emitR = () => subsR.forEach(f => f(Object.values(state.rifas)));
+  const emitN = id => (subsN.get(id)||new Set()).forEach(f => f({...(state.numeros[id]||{})}));
+  return {
+    online:false,
+    watchRifas(cb){ subsR.add(cb); setTimeout(()=>cb(Object.values(state.rifas))); return ()=>subsR.delete(cb); },
+    async saveRifa(r){ state.rifas[r.id] = r; save(); emitR(); },
+    watchNumeros(id, cb){ if(!subsN.has(id)) subsN.set(id,new Set()); subsN.get(id).add(cb); setTimeout(()=>cb({...(state.numeros[id]||{})})); return ()=>subsN.get(id).delete(cb); },
+    async getNumero(id, n){ return (state.numeros[id]||{})[n] || null; },
+    async lock(){ return true; },
+    async setNumero(id, n, data){ state.numeros[id] = state.numeros[id]||{}; state.numeros[id][n] = data; save(); emitN(id); },
+    async delNumero(id, n){ if(state.numeros[id]) delete state.numeros[id][n]; save(); emitN(id); }
+  };
+}
+function dbStore(db){
+  const holder = uid();
+  return {
+    online:true,
+    watchRifas(cb, onErr){
+      return db.collection("rifas").onSnapshot(s => cb(s.docs.map(d => ({id:d.id, ...d.data()})), s), onErr);
+    },
+    async saveRifa(r){ const {id, ...rest} = r; await db.doc("rifas/"+id).set(rest); },
+    watchNumeros(id, cb, onErr){
+      return db.collection("rifas/"+id+"/numeros").onSnapshot(s => { const m = {}; s.docs.forEach(d => m[d.id] = d.data()); cb(m, s); }, onErr);
+    },
+    async getNumero(id, n){ const s = await db.doc("rifas/"+id+"/numeros/"+n).get(); return s.exists ? s.data() : null; },
+    async lock(id, n){ const r = await db.doc("rifas/"+id+"/numeros/"+n).acquire({holder, ttlMs:5000}); return r.acquired; },
+    async setNumero(id, n, data){ await db.doc("rifas/"+id+"/numeros/"+n).set(data); },
+    async delNumero(id, n){ await db.doc("rifas/"+id+"/numeros/"+n).delete(); }
+  };
+}
+
+/* ---------- Estado de la vista ---------- */
+let store = null, rifas = [], numeros = {}, activa = null, unsubN = null, filtro = "todos", busca = "";
+let loadTimer = null, rifasLoaded = false;
+
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(()=>t.hidden = true, 2600); }
+
+function remember(id){ try { localStorage.setItem("talonario-activa", id); } catch(e){} }
+function recalled(){ try { return localStorage.getItem("talonario-activa"); } catch(e){ return null; } }
+
+function setRifas(list){
+  rifasLoaded = true;
+  rifas = list.slice().sort((a,b) => (b.creada||0) - (a.creada||0));
+  const sel = $("#rifaSel");
+  if (!rifas.length){ sel.innerHTML = '<option value="">Sin rifas todavía</option>'; }
+  else sel.innerHTML = rifas.map(r => `<option value="${esc(r.id)}">${esc(r.nombre)}</option>`).join("");
+  const want = activa?.id || (location.hash.startsWith("#r-") ? location.hash.slice(3) : null) || recalled();
+  const found = rifas.find(r => r.id === want) || rifas[0] || null;
+  selectRifa(found ? found.id : null);
+}
+
+function selectRifa(id){
+  const r = rifas.find(x => x.id === id) || null;
+  const changed = (r?.id) !== (activa?.id);
+  activa = r;
+  if (r){ $("#rifaSel").value = r.id; remember(r.id); }
+  if (changed){
+    if (unsubN) unsubN();
+    unsubN = null; numeros = {};
+    if (r){
+      unsubN = store.watchNumeros(r.id, m => { numeros = m; render(); refreshSheet(); }, e => toast("No se pudieron leer los números: " + (e?.message||"")));
+    }
+  }
+  render();
+}
+
+function counts(){
+  const total = activa.cantidad;
+  let paid = 0, res = 0;
+  Object.values(numeros).forEach(v => { if (v.estado === "pagado") paid++; else if (v.estado === "apartado") res++; });
+  return { total, paid, res, libres: total - paid - res };
+}
+
+function render(){
+  const main = $("#main");
+  if (!rifasLoaded) return;
+  if (!activa){
+    main.innerHTML = `<div class="empty"><h2>Crea tu primera rifa</h2>
+      <p>Escribe el nombre de la rifa, el premio, el valor de cada número y tu Nequi. Después marcas cada número vendido y le envías el comprobante al cliente por WhatsApp.</p>
+      <button class="primary" type="button" data-act="nueva">+ Nueva rifa</button></div>`;
+    return;
+  }
+  const c = counts(), r = activa;
+  let cells = "";
+  for (let i = 0; i < r.cantidad; i++){
+    const k = pad(i, r.cantidad), v = numeros[k];
+    const st = v?.estado === "pagado" ? "paid" : v?.estado === "apartado" ? "res" : "free";
+    if (filtro !== "todos" && filtro !== st) continue;
+    if (busca && !k.includes(busca) && !(v && String(v.cliente||"").toLowerCase().includes(busca.toLowerCase()))) continue;
+    const label = st === "paid" ? `Número ${k}, pagado` : st === "res" ? `Número ${k}, apartado` : `Número ${k}, libre`;
+    cells += `<button type="button" class="n ${st==='free'?'':st}" data-n="${k}" aria-label="${label}">${k}${st==='paid'?'<span class="tag">PAGO</span>':''}</button>`;
+  }
+  main.innerHTML = `
+  <section class="rifa">
+    <div class="rifa-main">
+      <span class="lbl">Rifa</span>
+      <h2>${esc(r.nombre)}</h2>
+      <div class="meta">
+        <span>Premio: <b>${esc(r.premio)}</b></span>
+        ${r.loteria ? `<span>Juega con: <b>${esc(r.loteria)}</b></span>` : ""}
+        ${r.fecha ? `<span>Fecha: <b>${esc(r.fecha)}</b></span>` : ""}
+        <span>Nequi: <b>${esc(r.nequi)}</b>${r.titular ? " · " + esc(r.titular) : ""}</span>
+      </div>
+    </div>
+    <div class="rifa-stub"><span class="lbl">Valor del número</span><span class="big">${money(r.valor)}</span></div>
+  </section>
+  <section class="stats" aria-label="Resumen">
+    <div class="stat paid"><div class="lbl">Pagados</div><div class="big">${c.paid}</div></div>
+    <div class="stat res"><div class="lbl">Apartados</div><div class="big">${c.res}</div></div>
+    <div class="stat"><div class="lbl">Libres</div><div class="big">${c.libres}</div></div>
+    <div class="stat"><div class="lbl">Recaudado</div><div class="big">${money(c.paid * r.valor)}</div></div>
+  </section>
+  <div class="filters" role="group" aria-label="Filtrar números">
+    ${[["todos","Todos"],["free","Libres"],["res","Apartados"],["paid","Pagados"]].map(([k,l]) => `<button type="button" class="chip" data-f="${k}" aria-pressed="${filtro===k}">${l}</button>`).join("")}
+    <input id="busca" type="search" placeholder="Buscar número o cliente" value="${esc(busca)}" aria-label="Buscar número o cliente">
+  </div>
+  <section class="grid" aria-label="Números de la rifa">${cells || '<p class="note">No hay números con ese filtro.</p>'}</section>
+  <p class="note">Los números pagados quedan bloqueados: nadie más puede apartarlos ni venderlos. Los apartados se pueden liberar si el cliente no paga.</p>`;
+  const b = $("#busca");
+  if (render._focusBusca){ b.focus(); b.setSelectionRange(b.value.length, b.value.length); render._focusBusca = false; }
+}
+
+/* ---------- Mensajes ---------- */
+function codigo(r, k){ return "RF-" + r.id.slice(-4).toUpperCase() + "-" + k + "-" + Date.now().toString(36).slice(-4).toUpperCase(); }
+function msgPago(r, k, cliente){
+  return `Hola ${cliente||""}! Apartaste el número *${k}* de la rifa *${r.nombre}*.\n` +
+    `Premio: ${r.premio}\nValor: ${money(r.valor)}\n\n` +
+    `Paga por Nequi al *${r.nequi}*${r.titular ? " (" + r.titular + ")" : ""} y envíame la captura del pago para confirmar tu número.`;
+}
+function msgRecibo(r, k, v){
+  return `*COMPROBANTE DE PAGO*\nRifa: ${r.nombre}\nNúmero: *${k}*\nCliente: ${v.cliente}\nValor pagado: ${money(r.valor)}\n` +
+    `Medio: Nequi ${r.nequi}${v.ref ? "\nReferencia Nequi: " + v.ref : ""}\nFecha de pago: ${v.pagadoEn}\nCódigo: ${v.codigo}\n` +
+    `Premio: ${r.premio}${r.loteria ? "\nJuega con: " + r.loteria : ""}${r.fecha ? "\nFecha del sorteo: " + r.fecha : ""}\n\n` +
+    `Tu número ${k} quedó registrado y bloqueado a tu nombre. ¡Mucha suerte!`;
+}
+function waLink(phone, text){ return "https://wa.me/" + waPhone(phone) + "?text=" + encodeURIComponent(text); }
+
+/* ---------- Hoja de detalle ---------- */
+let sheet = null; // {type:'num', k} | {type:'nueva'}
+function openSheet(s){ sheet = s; $("#overlay").hidden = false; drawSheet(); }
+function closeSheet(){ sheet = null; $("#overlay").hidden = true; }
+function refreshSheet(){ if (sheet?.type === "num" && !sheet.busy) drawSheet(true); }
+
+function drawSheet(soft){
+  const body = $("#sheetBody"), title = $("#sheetTitle");
+  if (sheet.type === "nueva"){
+    title.textContent = "Nueva rifa";
+    body.innerHTML = `
+    <form id="fRifa" class="sheet-body" style="padding:0">
+      <div class="field"><label for="rNombre">Nombre de la rifa</label><input id="rNombre" required maxlength="80" placeholder="Rifa pro-fondos Junta de Acción Comunal"></div>
+      <div class="field"><label for="rPremio">Premio</label><input id="rPremio" required maxlength="120" placeholder="Moto Honda CB 125"></div>
+      <div class="row">
+        <div class="field"><label for="rValor">Valor por número (COP)</label><input id="rValor" required inputmode="numeric" placeholder="10000"></div>
+        <div class="field"><label for="rCant">Números del talonario</label><select id="rCant"><option value="100">100 (00 a 99)</option><option value="1000">1000 (000 a 999)</option></select></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="rNequi">Número Nequi</label><input id="rNequi" required inputmode="tel" placeholder="300 123 4567"></div>
+        <div class="field"><label for="rTitular">Titular del Nequi</label><input id="rTitular" maxlength="60" placeholder="María Pérez"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="rLoteria">Juega con (lotería)</label><input id="rLoteria" maxlength="60" placeholder="Lotería de Medellín, 2 últimas cifras"></div>
+        <div class="field"><label for="rFecha">Fecha del sorteo</label><input id="rFecha" type="date"></div>
+      </div>
+      <p id="rErr" class="err" hidden></p>
+      <div class="actions"><button type="button" class="ghost" data-act="cerrar">Cancelar</button><button class="primary" type="submit">Crear talonario</button></div>
+    </form>`;
+    $("#rNombre").focus();
+    return;
+  }
+  const r = activa, k = sheet.k, v = numeros[k];
+  title.textContent = "Número " + k;
+  const st = v?.estado || "libre";
+  if (soft && sheet.lastSt === st && st !== "libre") return;
+  if (soft && st === "libre" && sheet.lastSt === "libre") return;
+  sheet.lastSt = st;
+  if (st === "pagado"){
+    const text = msgRecibo(r, k, v);
+    body.innerHTML = `
+      <div><span class="pill paid">Pagado · bloqueado</span></div>
+      <div class="recibo"><span class="sello">PAGADO</span>${esc(text.replace(/\*/g,""))}</div>
+      <div class="actions">
+        <a class="btn wa" href="${esc(waLink(v.telefono, text))}" target="_blank" rel="noopener">Enviar comprobante por WhatsApp</a>
+        <button type="button" class="ghost" data-act="copiar">Copiar comprobante</button>
+      </div>
+      <p class="note">WhatsApp del cliente: ${esc(v.telefono)}. Este número ya no se puede apartar, vender ni liberar.</p>`;
+    sheet.copyText = text;
+    return;
+  }
+  if (st === "apartado"){
+    body.innerHTML = `
+      <div><span class="pill res">Apartado</span></div>
+      <p style="margin:0">Apartado por <b>${esc(v.cliente)}</b> · WhatsApp ${esc(v.telefono)}</p>
+      <a class="btn" href="${esc(waLink(v.telefono, msgPago(r,k,v.cliente)))}" target="_blank" rel="noopener">Enviar datos de pago Nequi por WhatsApp</a>
+      <div class="field"><label for="nRef">Referencia del pago Nequi (opcional)</label><input id="nRef" maxlength="40" placeholder="M1234567"></div>
+      <p id="nErr" class="err" hidden></p>
+      <div class="actions">
+        <button type="button" class="primary" data-act="pagar">Confirmar pago</button>
+        <button type="button" class="warn" data-act="liberar">Liberar número</button>
+      </div>`;
+    return;
+  }
+  body.innerHTML = `
+    <div><span class="pill">Libre</span></div>
+    <div class="field"><label for="nCliente">Nombre del cliente</label><input id="nCliente" maxlength="60" placeholder="Carlos Gómez"></div>
+    <div class="field"><label for="nTel">WhatsApp del cliente</label><input id="nTel" inputmode="tel" placeholder="310 555 1234"></div>
+    <div class="field"><label for="nRef">Referencia del pago Nequi (si ya pagó)</label><input id="nRef" maxlength="40" placeholder="M1234567"></div>
+    <p id="nErr" class="err" hidden></p>
+    <div class="actions">
+      <button type="button" class="warn" data-act="apartar">Apartar (pendiente de pago)</button>
+      <button type="button" class="primary" data-act="pagar">Ya pagó: marcar pagado</button>
+    </div>
+    <p class="note">Al marcarlo pagado se genera el comprobante y el número queda bloqueado.</p>`;
+  $("#nCliente").focus();
+}
+
+function showErr(id, msg){ const e = $(id); if (e){ e.textContent = msg; e.hidden = !msg; } }
+
+async function cambiarNumero(kind){
+  const r = activa, k = sheet.k, cur = numeros[k];
+  let cliente = cur?.cliente, telefono = cur?.telefono;
+  if (!cur){
+    cliente = ($("#nCliente")?.value || "").trim();
+    telefono = ($("#nTel")?.value || "").trim();
+    if (!cliente) return showErr("#nErr", "Escribe el nombre del cliente.");
+    if (digits(telefono).length < 10) return showErr("#nErr", "Escribe el WhatsApp del cliente con 10 dígitos, por ejemplo 310 555 1234.");
+  }
+  const ref = ($("#nRef")?.value || "").trim();
+  sheet.busy = true;
+  const btns = document.querySelectorAll("#sheetBody button"); btns.forEach(b => b.disabled = true);
+  try {
+    if (!(await store.lock(r.id, k))) throw new Error("Otra persona está marcando este número en este momento. Intenta en unos segundos.");
+    const now = await store.getNumero(r.id, k);
+    if (now?.estado === "pagado") throw new Error("Este número ya fue pagado por " + now.cliente + ". No se puede volver a vender.");
+    if (kind === "liberar"){
+      await store.delNumero(r.id, k); toast("Número " + k + " liberado");
+    } else if (kind === "apartar"){
+      if (now) throw new Error("Este número ya está apartado por " + now.cliente + ".");
+      await store.setNumero(r.id, k, { estado:"apartado", cliente, telefono, apartadoEn: fechaHoy() });
+      toast("Número " + k + " apartado para " + cliente);
+    } else {
+      if (!cur && now) throw new Error("Este número acaba de ser apartado por " + now.cliente + ".");
+      const data = { estado:"pagado", cliente, telefono, ref, pagadoEn: fechaHoy(), codigo: codigo(r, k) };
+      await store.setNumero(r.id, k, data);
+      numeros[k] = data;
+      toast("Número " + k + " pagado y bloqueado");
+    }
+    sheet.busy = false; sheet.lastSt = null;
+    if (kind === "liberar") closeSheet(); else drawSheet();
+    render();
+  } catch(e){
+    sheet.busy = false;
+    btns.forEach(b => b.disabled = false);
+    showErr("#nErr", e?.message || "No se pudo guardar. Revisa tu conexión e intenta de nuevo.");
+  }
+}
+
+async function crearRifa(ev){
+  ev.preventDefault();
+  const g = id => ($(id).value || "").trim();
+  const valor = Number(digits(g("#rValor")));
+  if (!valor) return showErr("#rErr", "Escribe el valor de cada número en pesos, por ejemplo 10000.");
+  if (digits(g("#rNequi")).length < 10) return showErr("#rErr", "El número Nequi debe tener 10 dígitos.");
+  const fecha = g("#rFecha");
+  const r = { id: uid(), nombre: g("#rNombre"), premio: g("#rPremio"), valor, cantidad: Number($("#rCant").value),
+    nequi: g("#rNequi"), titular: g("#rTitular"), loteria: g("#rLoteria"),
+    fecha: fecha ? new Date(fecha + "T12:00").toLocaleDateString("es-CO",{dateStyle:"long"}) : "", creada: Date.now() };
+  try {
+    await store.saveRifa(r);
+    activa = null; remember(r.id);
+    if (!rifas.find(x => x.id === r.id)) setRifas([...rifas, r]);
+    selectRifa(r.id);
+    closeSheet(); toast("Talonario creado");
+  } catch(e){ showErr("#rErr", "No se pudo crear la rifa: " + (e?.message||"revisa tu conexión")); }
+}
+
+/* ---------- Eventos ---------- */
+document.addEventListener("click", async e => {
+  const t = e.target.closest("button, [data-act]");
+  if (!t) { if (e.target.id === "overlay") closeSheet(); return; }
+  if (t.dataset.n){ openSheet({type:"num", k:t.dataset.n}); return; }
+  if (t.dataset.f){ filtro = t.dataset.f; render(); return; }
+  const a = t.dataset.act;
+  if (t.id === "nuevaBtn" || a === "nueva") return openSheet({type:"nueva"});
+  if (t.id === "closeBtn" || a === "cerrar") return closeSheet();
+  if (a === "apartar" || a === "pagar" || a === "liberar") return cambiarNumero(a);
+  if (a === "copiar"){
+    try { await navigator.clipboard.writeText(sheet.copyText); toast("Comprobante copiado"); }
+    catch(_){ const sel = getSelection(), range = document.createRange(); range.selectNodeContents($(".recibo")); sel.removeAllRanges(); sel.addRange(range); toast("Texto seleccionado: cópialo"); }
+  }
+});
+document.addEventListener("submit", e => { if (e.target.id === "fRifa") crearRifa(e); });
+document.addEventListener("input", e => { if (e.target.id === "busca"){ busca = e.target.value.trim(); render._focusBusca = true; render(); } });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && sheet) closeSheet(); });
+$("#rifaSel").addEventListener("change", e => selectRifa(e.target.value));
+
+/* ---------- Arranque ---------- */
+function start(s){
+  store = s;
+  const m = $("#mode");
+  m.textContent = s.online ? "Compartido en línea" : "Guardado en este dispositivo";
+  m.classList.toggle("online", s.online);
+  loadTimer = setTimeout(() => { if (!rifasLoaded){ $("#main").innerHTML = '<div class="empty"><h2>Sin conexión todavía</h2><p>No se pudo leer el talonario. Revisa tu conexión; la página seguirá intentando.</p></div>'; } }, 10000);
+  s.watchRifas((list, snap) => { if (!snap || !snap.metadata?.fromCache) clearTimeout(loadTimer); setRifas(list); },
+    err => { clearTimeout(loadTimer); $("#main").innerHTML = '<div class="empty"><h2>No se pudo abrir el talonario</h2><p>' + esc(err?.message || "Error desconocido") + '</p></div>'; });
+}
+const c = window.claude;
+if (c && typeof c.use === "function"){
+  c.use("db").then(db => start(db ? dbStore(db) : localStore())).catch(() => start(localStore()));
+} else {
+  start(localStore());
+}
+})();
+</script>
+
+</body>
+</html>
