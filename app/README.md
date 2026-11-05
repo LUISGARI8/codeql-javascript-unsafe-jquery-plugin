@@ -1,4 +1,4 @@
-# Talonario de Rifas · versión con cuentas y suscripción
+# Rifa 07 · versión con cuentas y suscripción
 
 Aplicación web para vender rifas, con:
 - **Inicio de sesión** con correo y contraseña o con **Google** (Firebase Authentication), recuperación de contraseña y verificación de correo.

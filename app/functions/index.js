@@ -1,5 +1,5 @@
 /**
- * Suscripción mensual del Talonario de Rifas con Mercado Pago (suscripciones / preapproval).
+ * Suscripción mensual del Rifa 07 con Mercado Pago (suscripciones / preapproval).
  *
  * Fuente de verdad: la suscripción se consulta SIEMPRE en la API de Mercado Pago con el
  * token del comercio; nunca se confía en lo que diga el navegador ni el cuerpo del webhook.
@@ -77,7 +77,7 @@ exports.crearSuscripcion = onCall(opts, async (req) => {
   const pre = await mp("/preapproval", {
     method: "POST",
     body: JSON.stringify({
-      reason: "Talonario de Rifas - Plan mensual",
+      reason: "Rifa 07 - Plan mensual",
       external_reference: uid,
       payer_email: token.email,
       back_url: APP_URL.value().replace(/\/$/, "") + "/?suscripcion=volver",
