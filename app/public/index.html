@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Talonario de Rifas</title>
+<meta name="description" content="Talonario virtual para vender rifas: marca números, cobra por Nequi y envía comprobantes por WhatsApp.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Figtree:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap">
+<link rel="stylesheet" href="talonario.css">
+<style>
+body{margin:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+/* Pantallas de cuenta: una boleta centrada con talón perforado */
+.screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding-block:32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.ticket{width:100%;max-width:440px;background:var(--stock);border:1.5px solid var(--rule);border-radius:16px;box-shadow:0 10px 30px var(--shadow);overflow:hidden}
+.ticket-head{background:var(--ink);color:var(--paper);padding:26px 28px 22px;display:flex;flex-direction:column;gap:6px}
+.ticket-head .lbl{color:var(--ochre)}
+.ticket-head h1{font-size:2.3rem;color:var(--paper)}
+.ticket-head p{margin:0;opacity:.85;font-size:.95rem}
+.ticket-body{padding:22px 28px 26px;display:flex;flex-direction:column;gap:14px}
+.ticket-stub{border-top:2px dashed var(--rule);background:var(--ochre-bg);padding:16px 28px;font-size:.88rem;color:var(--ink-soft)}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--paper);border-radius:10px;padding:4px}
+.tabs button{border:none;border-radius:8px;padding:9px 10px}
+.tabs button[aria-selected="true"]{background:var(--stock);box-shadow:0 1px 3px var(--shadow)}
+.or{display:flex;align-items:center;gap:12px;color:var(--ink-soft);font-size:.82rem;text-transform:uppercase;letter-spacing:.08em}
+.or::before,.or::after{content:"";flex:1;height:1.5px;background:var(--rule)}
+.google{background:var(--stock);border-color:var(--rule);width:100%}
+.google svg{width:20px;height:20px}
+.full{width:100%}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:.88rem}
+.check input{width:20px;height:20px;padding:0;margin:2px 0 0;flex:none;accent-color:var(--accent)}
+.link{background:none;border:none;padding:0;color:var(--accent);font-weight:600;text-decoration:underline;cursor:pointer}
+a{color:var(--accent)}
+.ok{color:var(--paid);font-weight:600;margin:0}
+.price{display:flex;align-items:baseline;gap:8px}
+.price .big{font-size:3.4rem}
+.feats{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.feats li{display:flex;gap:10px}
+.feats li::before{content:"✓";color:var(--paid);font-weight:700}
+.estado{font-size:.9rem;padding:10px 12px;border-radius:8px;background:var(--paper);margin:0}
+.account{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:flex-end;font-size:.88rem;color:var(--ink-soft)}
+.account b{color:var(--ink)}
+.account button{padding:6px 12px;font-size:.85rem}
+.confirm{background:var(--ochre-bg);border:1.5px solid var(--ochre);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.confirm p{margin:0}
+</style>
+</head>
+<body>
+
+<!-- 1. Iniciar sesión / crear cuenta -->
+<section id="authScreen" class="screen" hidden>
+  <div class="ticket">
+    <div class="ticket-head">
+      <span class="lbl">Talonario de Rifas</span>
+      <h1 id="authTitle">Inicia sesión</h1>
+      <p>Vende tu rifa, marca los números pagados y envía comprobantes por WhatsApp.</p>
+    </div>
+    <div class="ticket-body">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tabLogin" aria-selected="true">Iniciar sesión</button>
+        <button type="button" role="tab" id="tabRegistro" aria-selected="false">Crear cuenta</button>
+      </div>
+      <button type="button" class="google" id="googleBtn">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+        Continuar con Google
+      </button>
+      <div class="or">o con tu correo</div>
+      <form id="authForm" novalidate style="display:flex;flex-direction:column;gap:14px">
+        <div class="field" id="nombreField" hidden><label for="aNombre">Nombre</label><input id="aNombre" autocomplete="name" maxlength="60" placeholder="María Pérez"></div>
+        <div class="field"><label for="aEmail">Correo electrónico</label><input id="aEmail" type="email" autocomplete="email" placeholder="tucorreo@gmail.com" required></div>
+        <div class="field"><label for="aPass">Contraseña</label><input id="aPass" type="password" autocomplete="current-password" minlength="8" placeholder="Mínimo 8 caracteres" required></div>
+        <div class="field" id="pass2Field" hidden><label for="aPass2">Repite la contraseña</label><input id="aPass2" type="password" autocomplete="new-password" minlength="8"></div>
+        <label class="check" id="termsField" hidden><input type="checkbox" id="aTerms"> <span>Acepto los <a href="terminos.html" target="_blank" rel="noopener">Términos de uso</a> y autorizo el tratamiento de mis datos según la <a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a>.</span></label>
+        <p id="authErr" class="err" hidden></p>
+        <p id="authOk" class="ok" hidden></p>
+        <button type="submit" class="primary full" id="authSubmit">Iniciar sesión</button>
+        <button type="button" class="link" id="olvideBtn">Olvidé mi contraseña</button>
+      </form>
+    </div>
+    <div class="ticket-stub">Plan único: <b>$10.000 COP al mes</b>. Cancelas cuando quieras.</div>
+  </div>
+</section>
+
+<!-- 2. Suscripción -->
+<section id="payScreen" class="screen" hidden>
+  <div class="ticket">
+    <div class="ticket-head">
+      <span class="lbl">Plan mensual</span>
+      <h1>Activa tu talonario</h1>
+      <p id="payHola">Hola.</p>
+    </div>
+    <div class="ticket-body">
+      <div class="price"><span class="big">$10.000</span><span>COP / mes</span></div>
+      <ul class="feats">
+        <li>Rifas ilimitadas de 100 o 1000 números</li>
+        <li>Números pagados bloqueados: nadie los puede volver a vender</li>
+        <li>Comprobante en imagen para enviar por WhatsApp</li>
+        <li>Tus rifas guardadas en la nube, en el celular y el computador</li>
+      </ul>
+      <p id="payEstado" class="estado" hidden></p>
+      <p id="payErr" class="err" hidden></p>
+      <button type="button" class="primary full" id="suscribirBtn">Suscribirme con Mercado Pago</button>
+      <button type="button" class="full" id="verificarBtn">Ya pagué: verificar mi suscripción</button>
+      <p class="note">El cobro de $10.000 se repite cada mes en el medio de pago que elijas en Mercado Pago. Puedes cancelar en cualquier momento desde tu cuenta y conservas el acceso hasta el final del mes pagado.</p>
+    </div>
+    <div class="ticket-stub"><span id="payEmail"></span> · <button type="button" class="link" data-salir>Cerrar sesión</button></div>
+  </div>
+</section>
+
+<!-- 3. Talonario -->
+<section id="appScreen" hidden>
+<div class="wrap">
+  <div class="account" id="account"></div>
+  <header class="top">
+    <div>
+      <h1>Talonario de Rifas</h1>
+      <p>Marca los números que vendes, cobra por Nequi y envía el comprobante por WhatsApp.</p>
+    </div>
+    <span id="mode" class="mode">Conectando…</span>
+  </header>
+  <div id="cancelBox" class="confirm" hidden>
+    <p><b>¿Cancelar tu suscripción?</b> No se te volverá a cobrar. Conservas el acceso hasta <span id="cancelHasta"></span>; después podrás ver tus rifas pero no marcar números.</p>
+    <p id="cancelErr" class="err" hidden></p>
+    <div class="actions"><button type="button" class="ghost" id="cancelNo">No, seguir suscrito</button><button type="button" class="warn" id="cancelSi">Sí, cancelar</button></div>
+  </div>
+  <div class="bar">
+    <select id="rifaSel" aria-label="Rifa activa"><option value="">Cargando rifas…</option></select>
+    <button id="nuevaBtn" class="primary" type="button">+ Nueva rifa</button>
+  </div>
+  <main id="main">
+    <div class="empty"><h2>Cargando el talonario</h2><p>Aquí aparecerán tus rifas y sus números.</p></div>
+  </main>
+</div>
+</section>
+
+<section id="loadScreen" class="screen"><p class="note">Cargando…</p></section>
+
+<div id="overlay" class="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head"><h2 id="sheetTitle">Número</h2><button class="x" type="button" id="closeBtn" aria-label="Cerrar">×</button></div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </div>
+</div>
+<div id="toast" class="toast" hidden></div>
+
+<!-- Firebase: en Firebase Hosting estas rutas sirven el SDK y la configuración del proyecto -->
+<script src="/__/firebase/10.12.2/firebase-app-compat.js"></script>
+<script src="/__/firebase/10.12.2/firebase-auth-compat.js"></script>
+<script src="/__/firebase/10.12.2/firebase-firestore-compat.js"></script>
+<script src="/__/firebase/10.12.2/firebase-functions-compat.js"></script>
+<script src="/__/firebase/init.js"></script>
+<script src="talonario.js"></script>
+<script src="cuenta.js"></script>
+</body>
+</html>

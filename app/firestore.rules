@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function esDueno(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    // Suscripción vigente: solo las Cloud Functions escriben usuarios/{uid}.suscripcion
+    function suscrito(uid) {
+      let u = get(/databases/$(database)/documents/usuarios/$(uid));
+      return u.data.get('suscripcion', {}).get('vence', null) is timestamp
+        && u.data.suscripcion.vence > request.time;
+    }
+    function estadoValido() {
+      return request.resource.data.estado in ['apartado', 'pagado'];
+    }
+
+    match /usuarios/{uid} {
+      allow read: if esDueno(uid);
+      allow write: if false;
+
+      match /rifas/{rifaId} {
+        allow read: if esDueno(uid);
+        allow create, update: if esDueno(uid) && suscrito(uid);
+        allow delete: if false;
+
+        match /numeros/{numero} {
+          allow read: if esDueno(uid);
+          allow create: if esDueno(uid) && suscrito(uid) && estadoValido();
+          // Un número PAGADO queda bloqueado: no se puede modificar ni liberar.
+          allow update: if esDueno(uid) && suscrito(uid) && estadoValido()
+                        && resource.data.estado != 'pagado';
+          allow delete: if esDueno(uid) && suscrito(uid)
+                        && resource.data.estado != 'pagado';
+        }
+      }
+    }
+  }
+}

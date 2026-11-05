@@ -1,0 +1,33 @@
+const { initializeTestEnvironment, assertSucceeds, assertFails } = require("@firebase/rules-unit-testing");
+const fs = require("fs");
+(async () => {
+  const env = await initializeTestEnvironment({ projectId: "demo-talonario", firestore: { rules: fs.readFileSync(__dirname + "/../firestore.rules", "utf8"), host: "127.0.0.1", port: 8080 } });
+  const day = 864e5;
+  await env.withSecurityRulesDisabled(async c => {
+    const db = c.firestore();
+    const { Timestamp } = require("firebase/firestore");
+    await db.doc("usuarios/ana").set({ suscripcion: { estado: "activa", vence: Timestamp.fromMillis(Date.now() + 30*day) } });
+    await db.doc("usuarios/beto").set({ suscripcion: { estado: "cancelada", vence: Timestamp.fromMillis(Date.now() - day) } });
+    await db.doc("usuarios/beto/rifas/r1").set({ nombre: "vieja" });
+  });
+  const ana = env.authenticatedContext("ana").firestore();
+  const beto = env.authenticatedContext("beto").firestore();
+  const carl = env.authenticatedContext("carl").firestore();
+  const anon = env.unauthenticatedContext().firestore();
+  const r = (ok, name, p) => p.then(() => console.log((ok ? "OK  " : "OK  ") + name)).catch(e => { console.log("FAIL " + name + " " + e.message); process.exitCode = 1; });
+  await r(1, "activa: crea rifa", assertSucceeds(ana.doc("usuarios/ana/rifas/r1").set({ nombre: "Moto" })));
+  await r(1, "activa: aparta 07", assertSucceeds(ana.doc("usuarios/ana/rifas/r1/numeros/07").set({ estado: "apartado", cliente: "X" })));
+  await r(1, "activa: libera apartado 07", assertSucceeds(ana.doc("usuarios/ana/rifas/r1/numeros/07").delete()));
+  await r(1, "activa: paga 08", assertSucceeds(ana.doc("usuarios/ana/rifas/r1/numeros/08").set({ estado: "pagado", cliente: "Y" })));
+  await r(1, "pagado bloqueado: no se modifica", assertFails(ana.doc("usuarios/ana/rifas/r1/numeros/08").set({ estado: "apartado", cliente: "Z" })));
+  await r(1, "pagado bloqueado: no se libera", assertFails(ana.doc("usuarios/ana/rifas/r1/numeros/08").delete()));
+  await r(1, "estado inválido rechazado", assertFails(ana.doc("usuarios/ana/rifas/r1/numeros/09").set({ estado: "regalado" })));
+  await r(1, "usuario no puede darse suscripción", assertFails(ana.doc("usuarios/ana").set({ suscripcion: { vence: new Date(Date.now() + 999*day) } })));
+  await r(1, "vencida: puede leer sus rifas", assertSucceeds(beto.doc("usuarios/beto/rifas/r1").get()));
+  await r(1, "vencida: no puede crear rifa", assertFails(beto.doc("usuarios/beto/rifas/r2").set({ nombre: "x" })));
+  await r(1, "vencida: no puede marcar números", assertFails(beto.doc("usuarios/beto/rifas/r1/numeros/01").set({ estado: "pagado" })));
+  await r(1, "sin cuenta de suscripción: no escribe", assertFails(carl.doc("usuarios/carl/rifas/r1").set({ nombre: "x" })));
+  await r(1, "otro usuario no lee rifas ajenas", assertFails(beto.doc("usuarios/ana/rifas/r1").get()));
+  await r(1, "anónimo no lee nada", assertFails(anon.doc("usuarios/ana").get()));
+  await env.cleanup();
+})();
