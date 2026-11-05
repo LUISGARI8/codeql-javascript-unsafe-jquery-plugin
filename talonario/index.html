@@ -96,6 +96,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .recibo{font-family:var(--f-mono);background:var(--paper);border:1.5px solid var(--rule);border-radius:8px;padding:14px 16px;white-space:pre-wrap;word-break:break-word;font-size:.88rem;position:relative}
 .recibo .sello{position:absolute;right:12px;top:10px;border:2px solid var(--paid);color:var(--paid);font-family:var(--f-display);font-weight:800;font-size:1rem;padding:2px 8px;transform:rotate(-8deg);border-radius:4px;letter-spacing:.06em}
 .err{color:var(--danger);font-weight:600;margin:0}
+.recibo-img{min-height:120px;display:flex;align-items:center;justify-content:center;background:var(--paper);border-radius:10px}
+.recibo-img img{display:block;width:100%;height:auto;border-radius:10px}
+details.txt{display:flex;flex-direction:column;gap:10px}
+details.txt summary{cursor:pointer;font-weight:600;color:var(--ink-soft)}
+details.txt[open] .recibo{margin-block:10px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:999px;font-weight:600;z-index:30;max-width:calc(100% - 32px)}
 @media (max-width:640px){
   h1{font-size:1.9rem}
@@ -294,6 +299,93 @@ function msgRecibo(r, k, v){
     `Premio: ${r.premio}${r.loteria ? "\nJuega con: " + r.loteria : ""}${r.fecha ? "\nFecha del sorteo: " + r.fecha : ""}\n\n` +
     `Tu número ${k} quedó registrado y bloqueado a tu nombre. ¡Mucha suerte!`;
 }
+/* ---------- Imagen del comprobante ---------- */
+const RC = { paper:"#efe7d2", stock:"#fffaf0", ink:"#1f3b2f", soft:"#5d7468", rule:"#e4dac2", ochre:"#c98a12", ochreBg:"#fbedc9", paid:"#1f6b45", white:"#fffaf0" };
+const FD = '"Big Shoulders Display", "Arial Narrow", Impact, sans-serif', FB = '"Figtree", system-ui, sans-serif', FM = '"Courier Prime", "Courier New", monospace';
+async function fontsReady(){
+  try { await Promise.all(['800 100px "Big Shoulders Display"','700 40px "Figtree"','600 40px "Figtree"','400 40px "Figtree"','700 40px "Courier Prime"'].map(f => document.fonts.load(f))); } catch(e){}
+}
+function wrapText(ctx, text, maxW){
+  const words = String(text).split(/\s+/), lines = []; let line = "";
+  for (const w of words){ const t = line ? line + " " + w : w; if (ctx.measureText(t).width > maxW && line){ lines.push(line); line = w; } else line = t; }
+  if (line) lines.push(line); return lines;
+}
+function rr(ctx, x, y, w, h, r){ ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); }
+function spacing(ctx, px){ if ("letterSpacing" in ctx) ctx.letterSpacing = px + "px"; }
+async function reciboPNG(r, k, v){
+  await fontsReady();
+  const W = 1080, M = 56, CW = W - 2*M, PX = 72, X = M + PX, XR = M + CW - PX;
+  const meas = document.createElement("canvas").getContext("2d");
+  meas.font = `800 80px ${FD}`;
+  const title = wrapText(meas, String(r.nombre).toUpperCase(), CW - 2*PX).slice(0, 3);
+  const rows = [["Cliente", v.cliente], ["Valor pagado", money(r.valor)], ["Pagado por Nequi a", r.nequi + (r.titular ? " · " + r.titular : "")],
+    ["Referencia Nequi", v.ref], ["Fecha de pago", v.pagadoEn], ["Premio", r.premio], ["Juega con", r.loteria], ["Fecha del sorteo", r.fecha]].filter(x => x[1]);
+  meas.font = `700 34px ${FB}`;
+  const rowsL = rows.map(([l, val]) => [l, wrapText(meas, val, CW - 2*PX - 330).slice(0, 3)]);
+  const headH = 120 + title.length * 84 + 40, numH = 330;
+  const rowsH = rowsL.reduce((s, [, ls]) => s + 46 + ls.length * 44, 0) + 24;
+  const stubH = 270, cardH = headH + numH + rowsH + 40 + stubH, H = cardH + 2*M;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const ctx = cv.getContext("2d"); ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = RC.paper; ctx.fillRect(0, 0, W, H);
+  ctx.save(); ctx.shadowColor = "rgba(31,59,47,.18)"; ctx.shadowBlur = 30; ctx.shadowOffsetY = 10;
+  rr(ctx, M, M, CW, cardH, 30); ctx.fillStyle = RC.stock; ctx.fill(); ctx.restore();
+  ctx.save(); rr(ctx, M, M, CW, cardH, 30); ctx.clip();
+  /* encabezado */
+  ctx.fillStyle = RC.ink; ctx.fillRect(M, M, CW, headH);
+  let y = M + 82;
+  ctx.fillStyle = RC.ochre; ctx.font = `700 28px ${FB}`; spacing(ctx, 5); ctx.textAlign = "left";
+  ctx.fillText("COMPROBANTE DE PAGO", X, y); spacing(ctx, 0);
+  ctx.fillStyle = RC.white; ctx.font = `800 80px ${FD}`;
+  title.forEach(line => { y += 84; ctx.fillText(line, X, y); });
+  /* número */
+  const ny = M + headH;
+  ctx.fillStyle = RC.soft; ctx.font = `700 28px ${FB}`; spacing(ctx, 5); ctx.fillText("NÚMERO", X, ny + 78); spacing(ctx, 0);
+  ctx.fillStyle = RC.paid; ctx.font = `800 240px ${FD}`; ctx.fillText(k, X - 8, ny + 296);
+  /* sello */
+  ctx.save(); ctx.translate(XR - 165, ny + 180); ctx.rotate(-0.17);
+  ctx.strokeStyle = RC.paid; ctx.lineWidth = 8; rr(ctx, -165, -72, 330, 144, 18); ctx.stroke();
+  ctx.lineWidth = 2.5; rr(ctx, -150, -57, 300, 114, 12); ctx.stroke();
+  ctx.fillStyle = RC.paid; ctx.font = `800 92px ${FD}`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; spacing(ctx, 4);
+  ctx.fillText("PAGADO", 4, 6); spacing(ctx, 0); ctx.restore();
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  /* filas */
+  y = ny + numH;
+  rowsL.forEach(([label, lines]) => {
+    ctx.strokeStyle = RC.rule; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X, y); ctx.lineTo(XR, y); ctx.stroke();
+    ctx.fillStyle = RC.soft; ctx.font = `600 27px ${FB}`; ctx.textAlign = "left"; ctx.fillText(label, X, y + 56);
+    ctx.fillStyle = RC.ink; ctx.font = `700 34px ${FB}`; ctx.textAlign = "right";
+    lines.forEach((ln, i) => ctx.fillText(ln, XR, y + 56 + i*44));
+    y += 46 + lines.length * 44;
+  });
+  ctx.textAlign = "left";
+  /* talón desprendible */
+  const yP = M + headH + numH + rowsH + 40;
+  ctx.fillStyle = RC.ochreBg; ctx.fillRect(M, yP, CW, cardH + M - yP);
+  ctx.strokeStyle = RC.ochre; ctx.lineWidth = 3; ctx.setLineDash([16, 12]);
+  ctx.beginPath(); ctx.moveTo(M + 40, yP); ctx.lineTo(M + CW - 40, yP); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = RC.soft; ctx.font = `700 26px ${FB}`; spacing(ctx, 5); ctx.fillText("CÓDIGO DE VERIFICACIÓN", X, yP + 72); spacing(ctx, 0);
+  ctx.fillStyle = RC.ink; ctx.font = `700 60px ${FM}`; ctx.fillText(v.codigo || "", X, yP + 146);
+  ctx.fillStyle = RC.soft; ctx.font = `400 28px ${FB}`;
+  wrapText(ctx, `El número ${k} quedó registrado y bloqueado a nombre de ${v.cliente}. ¡Mucha suerte!`, CW - 2*PX).slice(0, 2)
+    .forEach((ln, i) => ctx.fillText(ln, X, yP + 204 + i*38));
+  ctx.restore();
+  /* muescas de perforación */
+  ctx.fillStyle = RC.paper;
+  [M, M + CW].forEach(cx => { ctx.beginPath(); ctx.arc(cx, yP, 26, 0, Math.PI*2); ctx.fill(); });
+  return new Promise(res => cv.toBlob(res, "image/png"));
+}
+async function descargar(){
+  const blob = sheet.blob, name = sheet.fileName;
+  try {
+    const dl = window.claude?.use ? await window.claude.use("downloads") : null;
+    if (dl){ await dl.save({ filename: name, data: blob }); toast("Imagen guardada"); return; }
+  } catch(e){ if (e?.code === "declined") return; }
+  try {
+    const a = document.createElement("a"); a.href = sheet.imgUrl; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    toast("Imagen descargada");
+  } catch(e){ toast("Mantenga presionada la imagen para guardarla"); }
+}
 function waLink(phone, text){ return "https://wa.me/" + waPhone(phone) + "?text=" + encodeURIComponent(text); }
 
 /* ---------- Hoja de detalle ---------- */
@@ -338,13 +430,30 @@ function drawSheet(soft){
     const text = msgRecibo(r, k, v);
     body.innerHTML = `
       <div><span class="pill paid">Pagado · bloqueado</span></div>
-      <div class="recibo"><span class="sello">PAGADO</span>${esc(text.replace(/\*/g,""))}</div>
+      <div class="recibo-img" id="rcBox"><span class="note">Preparando la imagen del comprobante…</span></div>
       <div class="actions">
-        <a class="btn wa" href="${esc(waLink(v.telefono, text))}" target="_blank" rel="noopener">Enviar comprobante por WhatsApp</a>
-        <button type="button" class="ghost" data-act="copiar">Copiar comprobante</button>
+        <button type="button" class="primary" data-act="compartir" disabled>Compartir imagen</button>
+        <button type="button" data-act="descargar" disabled>Descargar imagen</button>
       </div>
-      <p class="note">WhatsApp del cliente: ${esc(v.telefono)}. Este número ya no se puede apartar, vender ni liberar.</p>`;
+      <div class="actions">
+        <a class="btn wa" href="${esc(waLink(v.telefono, text))}" target="_blank" rel="noopener">Abrir chat de WhatsApp con el comprobante</a>
+      </div>
+      <details class="txt"><summary>Ver comprobante en texto</summary>
+        <div class="recibo"><span class="sello">PAGADO</span>${esc(text.replace(/\*/g,""))}</div>
+        <button type="button" class="ghost" data-act="copiar">Copiar texto</button>
+      </details>
+      <p class="note">En el celular, <b>Compartir imagen</b> le deja escoger WhatsApp y el chat del cliente. Si no aparece esa opción, descargue la imagen y adjúntela en el chat. WhatsApp del cliente: ${esc(v.telefono)}. Este número ya no se puede apartar, vender ni liberar.</p>`;
     sheet.copyText = text;
+    const want = sheet;
+    reciboPNG(r, k, v).then(blob => {
+      if (sheet !== want || !blob) return;
+      sheet.blob = blob; sheet.fileName = "comprobante-rifa-numero-" + k + ".png";
+      if (sheet.imgUrl) URL.revokeObjectURL(sheet.imgUrl);
+      sheet.imgUrl = URL.createObjectURL(blob);
+      const box = $("#rcBox");
+      box.innerHTML = `<img src="${sheet.imgUrl}" alt="Comprobante de pago del número ${esc(k)} de la rifa ${esc(r.nombre)}">`;
+      document.querySelectorAll('[data-act="compartir"],[data-act="descargar"]').forEach(b => b.disabled = false);
+    }).catch(() => { const box = $("#rcBox"); if (box) box.innerHTML = '<p class="err">No se pudo crear la imagen. Use el comprobante en texto.</p>'; });
     return;
   }
   if (st === "apartado"){
@@ -444,6 +553,18 @@ document.addEventListener("click", async e => {
   if (t.id === "nuevaBtn" || a === "nueva") return openSheet({type:"nueva"});
   if (t.id === "closeBtn" || a === "cerrar") return closeSheet();
   if (a === "apartar" || a === "pagar" || a === "liberar") return cambiarNumero(a);
+  if (a === "compartir" && sheet?.blob){
+    const file = new File([sheet.blob], sheet.fileName, {type:"image/png"});
+    try {
+      if (navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({files:[file], text:"Comprobante de pago · Rifa " + activa.nombre + " · Número " + sheet.k});
+        return;
+      }
+    } catch(err){ if (err && err.name === "AbortError") return; }
+    toast("Este navegador no deja compartir la imagen. Descárguela y adjúntela en WhatsApp.");
+    return descargar();
+  }
+  if (a === "descargar" && sheet?.blob) return descargar();
   if (a === "copiar"){
     try { await navigator.clipboard.writeText(sheet.copyText); toast("Comprobante copiado"); }
     catch(_){ const sel = getSelection(), range = document.createRange(); range.selectNodeContents($(".recibo")); sel.removeAllRanges(); sel.addRange(range); toast("Texto seleccionado: cópialo"); }
