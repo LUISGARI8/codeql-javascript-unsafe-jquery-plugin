@@ -106,7 +106,8 @@ function render(){
     if (filtro !== "todos" && filtro !== st) continue;
     if (busca && !k.includes(busca) && !(v && String(v.cliente||"").toLowerCase().includes(busca.toLowerCase()))) continue;
     const label = st === "paid" ? `Número ${k}, pagado` : st === "res" ? `Número ${k}, apartado` : `Número ${k}, libre`;
-    cells += `<button type="button" class="n ${st==='free'?'':st}" data-n="${k}" aria-label="${label}">${k}${st==='paid'?'<span class="tag">PAGO</span>':''}</button>`;
+    const tip = v ? ` title="${esc(v.cliente)}"` : "";
+    cells += `<button type="button" class="n ${st==='free'?'':st}" data-n="${k}" aria-label="${label}${v ? ", " + esc(v.cliente) : ""}"${tip}>${k}${st==='paid'?'<span class="tag">PAGO</span>':st==='res'?'<span class="tag">APART.</span>':''}</button>`;
   }
   main.innerHTML = `
   <section class="rifa">
@@ -122,18 +123,29 @@ function render(){
     </div>
     <div class="rifa-stub"><span class="lbl">Valor del número</span><span class="big">${money(r.valor)}</span></div>
   </section>
-  <section class="stats" aria-label="Resumen">
-    <div class="stat paid"><div class="lbl">Pagados</div><div class="big">${c.paid}</div></div>
-    <div class="stat res"><div class="lbl">Apartados</div><div class="big">${c.res}</div></div>
-    <div class="stat"><div class="lbl">Libres</div><div class="big">${c.libres}</div></div>
-    <div class="stat"><div class="lbl">Recaudado</div><div class="big">${money(c.paid * r.valor)}</div></div>
+  <section class="summary" aria-label="Resumen de ventas">
+    <div class="progress-head">
+      <span><b class="big">${c.paid}</b> de ${c.total} números pagados</span>
+      <span><b class="big">${money(c.paid * r.valor)}</b> recaudado${c.res ? ` · <span class="pend">${money(c.res * r.valor)} por cobrar</span>` : ""}</span>
+    </div>
+    <div class="progress" role="progressbar" aria-label="Avance de ventas" aria-valuemin="0" aria-valuemax="${c.total}" aria-valuenow="${c.paid}">
+      <span class="p-paid" style="width:${c.paid / c.total * 100}%"></span><span class="p-res" style="width:${c.res / c.total * 100}%"></span>
+    </div>
+    <div class="legend" role="group" aria-label="Ver números por estado (toca para filtrar)">
+      ${[["free","Libres",c.libres],["res","Apartados",c.res],["paid","Pagados",c.paid]].map(([k,l,n]) => `<button type="button" class="lg ${k}" data-f="${k}" aria-pressed="${filtro===k}"><span class="sw" aria-hidden="true"></span><span>${l}</span><b>${n}</b></button>`).join("")}
+    </div>
   </section>
-  <div class="filters" role="group" aria-label="Filtrar números">
-    ${[["todos","Todos"],["free","Libres"],["res","Apartados"],["paid","Pagados"]].map(([k,l]) => `<button type="button" class="chip" data-f="${k}" aria-pressed="${filtro===k}">${l}</button>`).join("")}
-    <input id="busca" type="search" placeholder="Buscar número o cliente" value="${esc(busca)}" aria-label="Buscar número o cliente">
+  ${c.paid + c.res === 0 ? `<ol class="guide" aria-label="Cómo vender un número">
+    <li><span><b>Toca un número libre</b> en el talonario.</span></li>
+    <li><span><b>Escribe el cliente</b> y dinos si ya pagó.</span></li>
+    <li><span><b>Envíale el comprobante</b> por WhatsApp.</span></li>
+  </ol>` : ""}
+  <div class="search">
+    <input id="busca" type="search" placeholder="Buscar número o nombre del cliente" value="${esc(busca)}" aria-label="Buscar número o nombre del cliente">
+    ${filtro !== "todos" ? `<button type="button" class="ghost" data-f="todos">Ver todos</button>` : ""}
   </div>
-  <section class="grid" aria-label="Números de la rifa">${cells || '<p class="note">No hay números con ese filtro.</p>'}</section>
-  <p class="note">Los números pagados quedan bloqueados: nadie más puede apartarlos ni venderlos. Los apartados se pueden liberar si el cliente no paga.</p>`;
+  <section class="grid" aria-label="Números de la rifa">${cells || `<p class="note">No hay números ${filtro === "free" ? "libres" : filtro === "res" ? "apartados" : filtro === "paid" ? "pagados" : ""} ${busca ? "que coincidan con «" + esc(busca) + "»" : ""}.</p>`}</section>
+  <p class="note">Toca cualquier número para venderlo, cobrarlo o reenviar su comprobante. Los pagados quedan bloqueados y nadie los puede volver a vender.</p>`;
   const b = $("#busca");
   if (render._focusBusca){ b.focus(); b.setSelectionRange(b.value.length, b.value.length); render._focusBusca = false; }
 }
@@ -242,8 +254,16 @@ function waLink(phone, text){ return "https://wa.me/" + waPhone(phone) + "?text=
 
 /* ---------- Hoja de detalle ---------- */
 let sheet = null; // {type:'num', k} | {type:'nueva'}
-function openSheet(s){ sheet = s; $("#overlay").hidden = false; drawSheet(); }
-function closeSheet(){ sheet = null; $("#overlay").hidden = true; }
+function openSheet(s){
+  if (!sheet){ try { history.pushState({ hoja: 1 }, ""); } catch(e){} }
+  sheet = s; $("#overlay").hidden = false; document.body.classList.add("lock"); drawSheet();
+}
+function closeSheet(fromBack){
+  if (!sheet) return;
+  sheet = null; $("#overlay").hidden = true; document.body.classList.remove("lock");
+  if (!fromBack && history.state && history.state.hoja){ try { history.back(); } catch(e){} }
+}
+function vibrar(p){ try { navigator.vibrate && navigator.vibrate(p); } catch(e){} }
 function refreshSheet(){ if (sheet?.type === "num" && !sheet.busy) drawSheet(true); }
 
 function drawSheet(soft){
@@ -282,19 +302,20 @@ function drawSheet(soft){
     const text = msgRecibo(r, k, v);
     body.innerHTML = `
       <div><span class="pill paid">Pagado · bloqueado</span></div>
+      <div class="step">Envíale el comprobante a ${esc(v.cliente)} · ${esc(fmtTel(v.telefono))}</div>
+      <button type="button" class="primary full big-btn" data-act="compartir" disabled>Enviar imagen por WhatsApp</button>
+      <p class="note">Se abre el menú de compartir del celular: escoge <b>WhatsApp</b> y el chat del cliente.</p>
       <div class="recibo-img" id="rcBox"><span class="note">Preparando la imagen del comprobante…</span></div>
       <div class="actions">
-        <button type="button" class="primary" data-act="compartir" disabled>Compartir imagen</button>
-        <button type="button" data-act="descargar" disabled>Descargar imagen</button>
+        <a class="btn" href="${esc(waLink(v.telefono, text))}" target="_blank" rel="noopener">Enviar en texto</a>
+        <button type="button" data-act="descargar" disabled>Guardar imagen</button>
       </div>
-      <div class="actions">
-        <a class="btn wa" href="${esc(waLink(v.telefono, text))}" target="_blank" rel="noopener">Abrir chat de WhatsApp con el comprobante</a>
-      </div>
+      <button type="button" class="ghost full" data-act="otro">Vender otro número a ${esc(String(v.cliente).split(" ")[0])}</button>
       <details class="txt"><summary>Ver comprobante en texto</summary>
         <div class="recibo"><span class="sello">PAGADO</span>${esc(text.replace(/\*/g,""))}</div>
         <button type="button" class="ghost" data-act="copiar">Copiar texto</button>
       </details>
-      <p class="note">En el celular, <b>Compartir imagen</b> le deja escoger WhatsApp y el chat del cliente. Si no aparece esa opción, descargue la imagen y adjúntela en el chat. WhatsApp del cliente: ${esc(v.telefono)}. Este número ya no se puede apartar, vender ni liberar.</p>`;
+      <p class="note">Este número quedó bloqueado: ya no se puede apartar, vender ni liberar.</p>`;
     sheet.copyText = text;
     const want = sheet;
     reciboPNG(r, k, v).then(blob => {
@@ -310,30 +331,49 @@ function drawSheet(soft){
   }
   if (st === "apartado"){
     body.innerHTML = `
-      <div><span class="pill res">Apartado</span></div>
-      <p style="margin:0">Apartado por <b>${esc(v.cliente)}</b> · WhatsApp ${esc(v.telefono)}</p>
-      <a class="btn" href="${esc(waLink(v.telefono, msgPago(r,k,v.cliente)))}" target="_blank" rel="noopener">Enviar datos de pago Nequi por WhatsApp</a>
+      <div><span class="pill res">Apartado · falta el pago</span></div>
+      <p style="margin:0"><b>${esc(v.cliente)}</b> · WhatsApp ${esc(fmtTel(v.telefono))}</p>
+      <div class="step">Paso 1 · Pídele el pago</div>
+      <a class="btn wa" href="${esc(waLink(v.telefono, msgPago(r,k,v.cliente)))}" target="_blank" rel="noopener">Enviar mi Nequi por WhatsApp</a>
+      <div class="step">Paso 2 · Cuando te pague</div>
       <div class="field"><label for="nRef">Referencia del pago Nequi (opcional)</label><input id="nRef" maxlength="40" placeholder="M1234567"></div>
       <p id="nErr" class="err" hidden></p>
-      <div class="actions">
-        <button type="button" class="primary" data-act="pagar">Confirmar pago</button>
-        <button type="button" class="warn" data-act="liberar">Liberar número</button>
+      <button type="button" class="primary full" data-act="pagar">Confirmar pago y crear comprobante</button>
+      <button type="button" class="linkbtn" data-act="liberar-pre">El cliente no va a pagar: liberar este número</button>
+      <div id="libConfirm" class="confirm-sm" hidden>
+        <p>¿Liberar el número ${esc(k)}? Quedará libre para otro cliente.</p>
+        <div class="actions"><button type="button" class="ghost" data-act="liberar-no">No, dejarlo apartado</button><button type="button" class="warn" data-act="liberar">Sí, liberar</button></div>
       </div>`;
     return;
   }
+  const pago = sheet.pago !== false;
   body.innerHTML = `
     <div><span class="pill">Libre</span></div>
-    <div class="field"><label for="nCliente">Nombre del cliente</label><input id="nCliente" maxlength="60" placeholder="Carlos Gómez"></div>
-    <div class="field"><label for="nTel">WhatsApp del cliente</label><input id="nTel" inputmode="tel" placeholder="310 555 1234"></div>
-    <div class="field"><label for="nRef">Referencia del pago Nequi (si ya pagó)</label><input id="nRef" maxlength="40" placeholder="M1234567"></div>
-    <p id="nErr" class="err" hidden></p>
-    <div class="actions">
-      <button type="button" class="warn" data-act="apartar">Apartar (pendiente de pago)</button>
-      <button type="button" class="primary" data-act="pagar">Ya pagó: marcar pagado</button>
+    ${lastCliente ? `<div class="recent">¿Mismo cliente? <button type="button" data-act="usar-ultimo">${esc(lastCliente.cliente)} · ${esc(fmtTel(lastCliente.telefono))}</button></div>` : ""}
+    <div class="field"><label for="nCliente">Nombre del cliente</label><input id="nCliente" maxlength="60" autocomplete="off" placeholder="Carlos Gómez"></div>
+    <div class="field"><label for="nTel">WhatsApp del cliente</label><input id="nTel" inputmode="tel" autocomplete="off" placeholder="310 555 1234"></div>
+    <div class="field"><span class="flabel" id="pagoLbl">¿El cliente ya te pagó?</span>
+      <div class="seg" role="group" aria-labelledby="pagoLbl">
+        <button type="button" data-pago="si" aria-pressed="${pago}">Sí, ya pagó</button>
+        <button type="button" data-pago="no" aria-pressed="${!pago}">Todavía no</button>
+      </div>
     </div>
-    <p class="note">Al marcarlo pagado se genera el comprobante y el número queda bloqueado.</p>`;
+    <div class="field" id="refField"${pago ? "" : " hidden"}><label for="nRef">Referencia del pago Nequi (opcional)</label><input id="nRef" maxlength="40" placeholder="M1234567"></div>
+    <p id="nErr" class="err" hidden></p>
+    <button type="button" class="primary full" id="nGo" data-act="${pago ? "pagar" : "apartar"}">${pago ? "Marcar pagado y crear comprobante" : "Apartar número"}</button>
+    <p class="note" id="nHint">${pago ? "El número queda bloqueado a nombre del cliente y se crea el comprobante para enviarle." : "El número queda reservado. Después le envías tu Nequi por WhatsApp y confirmas cuando pague."}</p>`;
   $("#nCliente").focus();
 }
+function setPago(si){
+  sheet.pago = si;
+  document.querySelectorAll("[data-pago]").forEach(b => b.setAttribute("aria-pressed", String((b.dataset.pago === "si") === si)));
+  $("#refField").hidden = !si;
+  const go = $("#nGo"); go.dataset.act = si ? "pagar" : "apartar";
+  go.textContent = si ? "Marcar pagado y crear comprobante" : "Apartar número";
+  $("#nHint").textContent = si ? "El número queda bloqueado a nombre del cliente y se crea el comprobante para enviarle." : "El número queda reservado. Después le envías tu Nequi por WhatsApp y confirmas cuando pague.";
+}
+function fmtTel(t){ const d = digits(t); return d.length === 10 ? d.replace(/(\d{3})(\d{3})(\d{4})/, "$1 $2 $3") : String(t || ""); }
+let lastCliente = null;
 
 function showErr(id, msg){ const e = $(id); if (e){ e.textContent = msg; e.hidden = !msg; } }
 
@@ -358,12 +398,16 @@ async function cambiarNumero(kind){
     } else if (kind === "apartar"){
       if (now) throw new Error("Este número ya está apartado por " + now.cliente + ".");
       await store.setNumero(r.id, k, { estado:"apartado", cliente, telefono, apartadoEn: fechaHoy() });
+      lastCliente = { cliente, telefono };
+      vibrar(30);
       toast("Número " + k + " apartado para " + cliente);
     } else {
       if (!cur && now) throw new Error("Este número acaba de ser apartado por " + now.cliente + ".");
       const data = { estado:"pagado", cliente, telefono, ref, pagadoEn: fechaHoy(), codigo: codigo(r, k) };
       await store.setNumero(r.id, k, data);
       numeros[k] = data;
+      lastCliente = { cliente, telefono };
+      vibrar([40, 60, 40]);
       toast("Número " + k + " pagado y bloqueado");
     }
     sheet.busy = false; sheet.lastSt = null;
@@ -400,10 +444,15 @@ document.addEventListener("click", async e => {
   const t = e.target.closest("button, [data-act]");
   if (!t) { if (e.target.id === "overlay") closeSheet(); return; }
   if (t.dataset.n){ openSheet({type:"num", k:t.dataset.n}); return; }
-  if (t.dataset.f){ filtro = t.dataset.f; render(); return; }
+  if (t.dataset.f){ filtro = (t.dataset.f === filtro && t.dataset.f !== "todos") ? "todos" : t.dataset.f; render(); return; }
+  if (t.dataset.pago) return setPago(t.dataset.pago === "si");
   const a = t.dataset.act;
   if (t.id === "nuevaBtn" || a === "nueva") return openSheet({type:"nueva"});
   if (t.id === "closeBtn" || a === "cerrar") return closeSheet();
+  if (a === "usar-ultimo" && lastCliente){ $("#nCliente").value = lastCliente.cliente; $("#nTel").value = fmtTel(lastCliente.telefono); return; }
+  if (a === "liberar-pre"){ $("#libConfirm").hidden = false; t.hidden = true; return; }
+  if (a === "liberar-no"){ $("#libConfirm").hidden = true; $('[data-act="liberar-pre"]').hidden = false; return; }
+  if (a === "otro"){ closeSheet(); toast("Toca el siguiente número para " + (lastCliente?.cliente || "el cliente")); return; }
   if (a === "apartar" || a === "pagar" || a === "liberar") return cambiarNumero(a);
   if (a === "compartir" && sheet?.blob){
     const file = new File([sheet.blob], sheet.fileName, {type:"image/png"});
@@ -423,7 +472,17 @@ document.addEventListener("click", async e => {
   }
 });
 document.addEventListener("submit", e => { if (e.target.id === "fRifa") crearRifa(e); });
-document.addEventListener("input", e => { if (e.target.id === "busca"){ busca = e.target.value.trim(); render._focusBusca = true; render(); } });
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (el.id === "busca"){ busca = el.value.trim(); render._focusBusca = true; render(); return; }
+  if (el.id === "nTel" || el.id === "rNequi"){
+    const d = digits(el.value).slice(0, 10);
+    el.value = d.length > 6 ? d.replace(/(\d{3})(\d{3})(\d*)/, "$1 $2 $3") : d.length > 3 ? d.replace(/(\d{3})(\d*)/, "$1 $2") : d;
+  }
+  if (el.id === "rValor"){ const d = digits(el.value).slice(0, 9); el.value = d ? Number(d).toLocaleString("es-CO") : ""; }
+});
+/* Botón «atrás» de Android: cierra la ventana abierta en vez de salir de la app */
+window.addEventListener("popstate", () => { if (sheet) closeSheet(true); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && sheet) closeSheet(); });
 $("#rifaSel").addEventListener("change", e => selectRifa(e.target.value));
 

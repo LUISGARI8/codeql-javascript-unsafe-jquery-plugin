@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Talonario de Rifas</title>
 <meta name="description" content="Talonario virtual para vender rifas: marca números, cobra por Nequi y envía comprobantes por WhatsApp.">
+<meta name="theme-color" content="#1f3b2f">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Figtree:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap">
 <link rel="stylesheet" href="talonario.css">
@@ -44,6 +49,17 @@ a{color:var(--accent)}
 .account button{padding:6px 12px;font-size:.85rem}
 .confirm{background:var(--ochre-bg);border:1.5px solid var(--ochre);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
 .confirm p{margin:0}
+.install{display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--paper);border-radius:12px;padding:10px 12px 10px 16px}
+.install span{flex:1;font-weight:600;font-size:.92rem}
+.install button{background:var(--ochre);border-color:var(--ochre);color:#1f3b2f}
+.install .x{background:none;border:none;color:var(--paper);min-height:44px}
+@media (max-width:640px){
+  .screen{align-items:flex-start;padding-block:16px}
+  .ticket-head{padding:20px 18px 18px}
+  .ticket-body{padding:18px}
+  .ticket-stub{padding:14px 18px}
+  .account{justify-content:space-between}
+}
 </style>
 </head>
 <body>
@@ -119,6 +135,11 @@ a{color:var(--accent)}
     </div>
     <span id="mode" class="mode">Conectando…</span>
   </header>
+  <div id="installBar" class="install" hidden>
+    <span>Instala el talonario en tu celular y ábrelo como una app.</span>
+    <button type="button" id="installBtn">Instalar</button>
+    <button type="button" class="x" id="installNo" aria-label="Ahora no">×</button>
+  </div>
   <div id="cancelBox" class="confirm" hidden>
     <p><b>¿Cancelar tu suscripción?</b> No se te volverá a cobrar. Conservas el acceso hasta <span id="cancelHasta"></span>; después podrás ver tus rifas pero no marcar números.</p>
     <p id="cancelErr" class="err" hidden></p>

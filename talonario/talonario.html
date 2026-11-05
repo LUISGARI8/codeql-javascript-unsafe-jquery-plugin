@@ -51,14 +51,42 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .rifa-stub{border-left:2px dashed var(--rule);padding:18px 20px;display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:150px;background:var(--ochre-bg)}
 .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft)}
 .big{font-family:var(--f-display);font-weight:800;font-size:1.9rem;line-height:1;font-variant-numeric:tabular-nums}
-.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.stat{background:var(--stock);border:1.5px solid var(--rule);border-radius:10px;padding:10px 12px}
-.stat .big{font-size:1.6rem}
-.stat.paid{border-color:var(--paid)} .stat.res{border-color:var(--ochre)}
-.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.chip{border:1.5px solid var(--rule);border-radius:999px;padding:6px 14px;font-weight:600;font-size:.9rem;background:transparent}
-.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-.filters input{width:auto;flex:1 1 160px}
+/* resumen: barra de avance + leyenda que filtra */
+.summary{background:var(--stock);border:1.5px solid var(--rule);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.progress-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 16px;color:var(--ink-soft)}
+.progress-head .big{font-size:1.7rem;color:var(--ink)}
+.pend{color:var(--ochre);font-weight:600}
+.progress{height:12px;border-radius:999px;background:var(--paper);border:1px solid var(--rule);display:flex;overflow:hidden}
+.p-paid{background:var(--paid)} .p-res{background:var(--ochre)}
+.legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.lg{justify-content:flex-start;gap:8px;border:1.5px solid var(--rule);background:var(--paper);padding:10px 12px;min-height:48px}
+.lg b{margin-left:auto;font-family:var(--f-display);font-size:1.4rem;font-variant-numeric:tabular-nums;line-height:1}
+.sw{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--rule);background:var(--stock);flex:none}
+.lg.res .sw{background:var(--ochre-bg);border-color:var(--ochre)} .lg.paid .sw{background:var(--paid-bg);border-color:var(--paid)}
+.lg[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink);background:var(--stock)}
+.guide{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;counter-reset:paso}
+.guide li{counter-increment:paso;background:var(--ochre-bg);border-radius:10px;padding:12px 14px;font-size:.92rem;display:flex;gap:10px;align-items:flex-start}
+.guide li::before{content:counter(paso);font-family:var(--f-display);font-weight:800;font-size:1.6rem;line-height:1;color:var(--ochre)}
+.search{display:flex;gap:8px;align-items:center}
+.search input{flex:1}
+.full{width:100%}
+#main{display:flex;flex-direction:column;gap:16px}
+.big-btn{min-height:56px;font-size:1.05rem}
+.step{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);font-weight:700}
+.flabel{font-size:.82rem;font-weight:600}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--paper);border-radius:10px;padding:4px}
+.seg button{border:1.5px solid transparent;min-height:46px}
+.seg button[aria-pressed="true"]{background:var(--stock);border-color:var(--ink);box-shadow:0 1px 3px var(--shadow)}
+.recent{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:.88rem;color:var(--ink-soft)}
+.recent button{border-radius:999px;border-color:var(--rule);background:var(--paper);padding:8px 14px;font-size:.88rem}
+.linkbtn{background:none;border:none;padding:8px 0;color:var(--danger);text-decoration:underline;font-weight:600;font-size:.9rem}
+.confirm-sm{background:var(--ochre-bg);border:1.5px solid var(--ochre);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.confirm-sm p{margin:0}
+.n.res .tag{position:absolute;left:0;right:0;bottom:2px;font-family:var(--f-body);font-size:.5rem;letter-spacing:.06em;font-weight:700;color:var(--ochre)}
+/* táctil */
+button,.btn,.n,select{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button,.btn{min-height:44px}
+body.lock{overflow:hidden}
 /* grid of tickets */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:6px}
 .n{position:relative;font-family:var(--f-display);font-weight:800;font-size:1.25rem;padding:12px 0 10px;border-radius:6px;border:1.5px solid var(--rule);background:var(--stock);color:var(--ink);font-variant-numeric:tabular-nums;cursor:pointer;line-height:1}
@@ -95,14 +123,38 @@ details.txt summary{cursor:pointer;font-weight:600;color:var(--ink-soft)}
 details.txt[open] .recibo{margin-block:10px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:999px;font-weight:600;z-index:30;max-width:calc(100% - 32px)}
 @media (max-width:640px){
-  h1{font-size:1.9rem}
+  .wrap{gap:14px;padding-block:12px 40px}
+  h1{font-size:1.7rem}
+  .top p{display:none}
+  /* barra fija arriba con la rifa activa y el botón de nueva rifa */
+  .bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);margin-inline:-16px;padding:8px 16px;border-bottom:1.5px solid var(--rule);flex-wrap:nowrap}
+  .bar select{flex:1 1 auto;width:0;min-height:48px}
+  .bar button{flex:none;min-height:48px;padding-inline:14px}
+  select,input{font-size:16px;min-height:48px}
   .rifa{grid-template-columns:1fr}
-  .rifa-stub{border-left:none;border-top:2px dashed var(--rule);flex-direction:row;align-items:baseline;justify-content:flex-start;gap:10px;flex-wrap:wrap}
-  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rifa-main{padding:14px 16px}
+  .rifa-stub{border-left:none;border-top:2px dashed var(--rule);flex-direction:row;align-items:baseline;justify-content:flex-start;gap:10px;flex-wrap:wrap;padding:12px 16px}
+  .summary{padding:14px}
+  .progress-head .big{font-size:1.45rem}
+  .legend{gap:6px}
+  .lg{flex-direction:column;align-items:flex-start;gap:4px;padding:8px 10px}
+  .lg .sw{position:absolute;opacity:0}
+  .lg{position:relative;border-top-width:5px}
+  .lg.free{border-top-color:var(--rule)} .lg.res{border-top-color:var(--ochre)} .lg.paid{border-top-color:var(--paid)}
+  .lg b{margin-left:0}
+  .guide{grid-template-columns:1fr;gap:6px}
+  .guide li{padding:9px 12px}
+  #main{gap:12px}
   .row{grid-template-columns:1fr}
   .overlay{align-items:flex-end;padding:0}
-  .sheet{border-radius:14px 14px 0 0;max-height:92%;padding-bottom:env(safe-area-inset-bottom,0px)}
-  .grid{grid-template-columns:repeat(auto-fill,minmax(52px,1fr))}
+  .sheet{border-radius:18px 18px 0 0;max-height:94%;padding-bottom:env(safe-area-inset-bottom,0px)}
+  .sheet-head{position:sticky;top:0;background:var(--stock);z-index:1;padding-top:22px}
+  .sheet-head::before{content:"";position:absolute;top:8px;left:50%;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:var(--rule)}
+  .sheet-body{padding:16px 16px 20px}
+  .actions>*{flex:1 1 120px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:7px}
+  .n{font-size:1.35rem;padding:15px 0 13px}
+  .toast{bottom:calc(24px + env(safe-area-inset-bottom,0px))}
 }
 @media (prefers-reduced-motion:no-preference){.n{transition:transform .12s,border-color .12s}.n:active{transform:scale(.95)}}
 </style>
@@ -246,7 +298,8 @@ function render(){
     if (filtro !== "todos" && filtro !== st) continue;
     if (busca && !k.includes(busca) && !(v && String(v.cliente||"").toLowerCase().includes(busca.toLowerCase()))) continue;
     const label = st === "paid" ? `Número ${k}, pagado` : st === "res" ? `Número ${k}, apartado` : `Número ${k}, libre`;
-    cells += `<button type="button" class="n ${st==='free'?'':st}" data-n="${k}" aria-label="${label}">${k}${st==='paid'?'<span class="tag">PAGO</span>':''}</button>`;
+    const tip = v ? ` title="${esc(v.cliente)}"` : "";
+    cells += `<button type="button" class="n ${st==='free'?'':st}" data-n="${k}" aria-label="${label}${v ? ", " + esc(v.cliente) : ""}"${tip}>${k}${st==='paid'?'<span class="tag">PAGO</span>':st==='res'?'<span class="tag">APART.</span>':''}</button>`;
   }
   main.innerHTML = `
   <section class="rifa">
@@ -262,18 +315,29 @@ function render(){
     </div>
     <div class="rifa-stub"><span class="lbl">Valor del número</span><span class="big">${money(r.valor)}</span></div>
   </section>
-  <section class="stats" aria-label="Resumen">
-    <div class="stat paid"><div class="lbl">Pagados</div><div class="big">${c.paid}</div></div>
-    <div class="stat res"><div class="lbl">Apartados</div><div class="big">${c.res}</div></div>
-    <div class="stat"><div class="lbl">Libres</div><div class="big">${c.libres}</div></div>
-    <div class="stat"><div class="lbl">Recaudado</div><div class="big">${money(c.paid * r.valor)}</div></div>
+  <section class="summary" aria-label="Resumen de ventas">
+    <div class="progress-head">
+      <span><b class="big">${c.paid}</b> de ${c.total} números pagados</span>
+      <span><b class="big">${money(c.paid * r.valor)}</b> recaudado${c.res ? ` · <span class="pend">${money(c.res * r.valor)} por cobrar</span>` : ""}</span>
+    </div>
+    <div class="progress" role="progressbar" aria-label="Avance de ventas" aria-valuemin="0" aria-valuemax="${c.total}" aria-valuenow="${c.paid}">
+      <span class="p-paid" style="width:${c.paid / c.total * 100}%"></span><span class="p-res" style="width:${c.res / c.total * 100}%"></span>
+    </div>
+    <div class="legend" role="group" aria-label="Ver números por estado (toca para filtrar)">
+      ${[["free","Libres",c.libres],["res","Apartados",c.res],["paid","Pagados",c.paid]].map(([k,l,n]) => `<button type="button" class="lg ${k}" data-f="${k}" aria-pressed="${filtro===k}"><span class="sw" aria-hidden="true"></span><span>${l}</span><b>${n}</b></button>`).join("")}
+    </div>
   </section>
-  <div class="filters" role="group" aria-label="Filtrar números">
-    ${[["todos","Todos"],["free","Libres"],["res","Apartados"],["paid","Pagados"]].map(([k,l]) => `<button type="button" class="chip" data-f="${k}" aria-pressed="${filtro===k}">${l}</button>`).join("")}
-    <input id="busca" type="search" placeholder="Buscar número o cliente" value="${esc(busca)}" aria-label="Buscar número o cliente">
+  ${c.paid + c.res === 0 ? `<ol class="guide" aria-label="Cómo vender un número">
+    <li><span><b>Toca un número libre</b> en el talonario.</span></li>
+    <li><span><b>Escribe el cliente</b> y dinos si ya pagó.</span></li>
+    <li><span><b>Envíale el comprobante</b> por WhatsApp.</span></li>
+  </ol>` : ""}
+  <div class="search">
+    <input id="busca" type="search" placeholder="Buscar número o nombre del cliente" value="${esc(busca)}" aria-label="Buscar número o nombre del cliente">
+    ${filtro !== "todos" ? `<button type="button" class="ghost" data-f="todos">Ver todos</button>` : ""}
   </div>
-  <section class="grid" aria-label="Números de la rifa">${cells || '<p class="note">No hay números con ese filtro.</p>'}</section>
-  <p class="note">Los números pagados quedan bloqueados: nadie más puede apartarlos ni venderlos. Los apartados se pueden liberar si el cliente no paga.</p>`;
+  <section class="grid" aria-label="Números de la rifa">${cells || `<p class="note">No hay números ${filtro === "free" ? "libres" : filtro === "res" ? "apartados" : filtro === "paid" ? "pagados" : ""} ${busca ? "que coincidan con «" + esc(busca) + "»" : ""}.</p>`}</section>
+  <p class="note">Toca cualquier número para venderlo, cobrarlo o reenviar su comprobante. Los pagados quedan bloqueados y nadie los puede volver a vender.</p>`;
   const b = $("#busca");
   if (render._focusBusca){ b.focus(); b.setSelectionRange(b.value.length, b.value.length); render._focusBusca = false; }
 }
@@ -382,8 +446,16 @@ function waLink(phone, text){ return "https://wa.me/" + waPhone(phone) + "?text=
 
 /* ---------- Hoja de detalle ---------- */
 let sheet = null; // {type:'num', k} | {type:'nueva'}
-function openSheet(s){ sheet = s; $("#overlay").hidden = false; drawSheet(); }
-function closeSheet(){ sheet = null; $("#overlay").hidden = true; }
+function openSheet(s){
+  if (!sheet){ try { history.pushState({ hoja: 1 }, ""); } catch(e){} }
+  sheet = s; $("#overlay").hidden = false; document.body.classList.add("lock"); drawSheet();
+}
+function closeSheet(fromBack){
+  if (!sheet) return;
+  sheet = null; $("#overlay").hidden = true; document.body.classList.remove("lock");
+  if (!fromBack && history.state && history.state.hoja){ try { history.back(); } catch(e){} }
+}
+function vibrar(p){ try { navigator.vibrate && navigator.vibrate(p); } catch(e){} }
 function refreshSheet(){ if (sheet?.type === "num" && !sheet.busy) drawSheet(true); }
 
 function drawSheet(soft){
@@ -422,19 +494,20 @@ function drawSheet(soft){
     const text = msgRecibo(r, k, v);
     body.innerHTML = `
       <div><span class="pill paid">Pagado · bloqueado</span></div>
+      <div class="step">Envíale el comprobante a ${esc(v.cliente)} · ${esc(fmtTel(v.telefono))}</div>
+      <button type="button" class="primary full big-btn" data-act="compartir" disabled>Enviar imagen por WhatsApp</button>
+      <p class="note">Se abre el menú de compartir del celular: escoge <b>WhatsApp</b> y el chat del cliente.</p>
       <div class="recibo-img" id="rcBox"><span class="note">Preparando la imagen del comprobante…</span></div>
       <div class="actions">
-        <button type="button" class="primary" data-act="compartir" disabled>Compartir imagen</button>
-        <button type="button" data-act="descargar" disabled>Descargar imagen</button>
+        <a class="btn" href="${esc(waLink(v.telefono, text))}" target="_blank" rel="noopener">Enviar en texto</a>
+        <button type="button" data-act="descargar" disabled>Guardar imagen</button>
       </div>
-      <div class="actions">
-        <a class="btn wa" href="${esc(waLink(v.telefono, text))}" target="_blank" rel="noopener">Abrir chat de WhatsApp con el comprobante</a>
-      </div>
+      <button type="button" class="ghost full" data-act="otro">Vender otro número a ${esc(String(v.cliente).split(" ")[0])}</button>
       <details class="txt"><summary>Ver comprobante en texto</summary>
         <div class="recibo"><span class="sello">PAGADO</span>${esc(text.replace(/\*/g,""))}</div>
         <button type="button" class="ghost" data-act="copiar">Copiar texto</button>
       </details>
-      <p class="note">En el celular, <b>Compartir imagen</b> le deja escoger WhatsApp y el chat del cliente. Si no aparece esa opción, descargue la imagen y adjúntela en el chat. WhatsApp del cliente: ${esc(v.telefono)}. Este número ya no se puede apartar, vender ni liberar.</p>`;
+      <p class="note">Este número quedó bloqueado: ya no se puede apartar, vender ni liberar.</p>`;
     sheet.copyText = text;
     const want = sheet;
     reciboPNG(r, k, v).then(blob => {
@@ -450,30 +523,49 @@ function drawSheet(soft){
   }
   if (st === "apartado"){
     body.innerHTML = `
-      <div><span class="pill res">Apartado</span></div>
-      <p style="margin:0">Apartado por <b>${esc(v.cliente)}</b> · WhatsApp ${esc(v.telefono)}</p>
-      <a class="btn" href="${esc(waLink(v.telefono, msgPago(r,k,v.cliente)))}" target="_blank" rel="noopener">Enviar datos de pago Nequi por WhatsApp</a>
+      <div><span class="pill res">Apartado · falta el pago</span></div>
+      <p style="margin:0"><b>${esc(v.cliente)}</b> · WhatsApp ${esc(fmtTel(v.telefono))}</p>
+      <div class="step">Paso 1 · Pídele el pago</div>
+      <a class="btn wa" href="${esc(waLink(v.telefono, msgPago(r,k,v.cliente)))}" target="_blank" rel="noopener">Enviar mi Nequi por WhatsApp</a>
+      <div class="step">Paso 2 · Cuando te pague</div>
       <div class="field"><label for="nRef">Referencia del pago Nequi (opcional)</label><input id="nRef" maxlength="40" placeholder="M1234567"></div>
       <p id="nErr" class="err" hidden></p>
-      <div class="actions">
-        <button type="button" class="primary" data-act="pagar">Confirmar pago</button>
-        <button type="button" class="warn" data-act="liberar">Liberar número</button>
+      <button type="button" class="primary full" data-act="pagar">Confirmar pago y crear comprobante</button>
+      <button type="button" class="linkbtn" data-act="liberar-pre">El cliente no va a pagar: liberar este número</button>
+      <div id="libConfirm" class="confirm-sm" hidden>
+        <p>¿Liberar el número ${esc(k)}? Quedará libre para otro cliente.</p>
+        <div class="actions"><button type="button" class="ghost" data-act="liberar-no">No, dejarlo apartado</button><button type="button" class="warn" data-act="liberar">Sí, liberar</button></div>
       </div>`;
     return;
   }
+  const pago = sheet.pago !== false;
   body.innerHTML = `
     <div><span class="pill">Libre</span></div>
-    <div class="field"><label for="nCliente">Nombre del cliente</label><input id="nCliente" maxlength="60" placeholder="Carlos Gómez"></div>
-    <div class="field"><label for="nTel">WhatsApp del cliente</label><input id="nTel" inputmode="tel" placeholder="310 555 1234"></div>
-    <div class="field"><label for="nRef">Referencia del pago Nequi (si ya pagó)</label><input id="nRef" maxlength="40" placeholder="M1234567"></div>
-    <p id="nErr" class="err" hidden></p>
-    <div class="actions">
-      <button type="button" class="warn" data-act="apartar">Apartar (pendiente de pago)</button>
-      <button type="button" class="primary" data-act="pagar">Ya pagó: marcar pagado</button>
+    ${lastCliente ? `<div class="recent">¿Mismo cliente? <button type="button" data-act="usar-ultimo">${esc(lastCliente.cliente)} · ${esc(fmtTel(lastCliente.telefono))}</button></div>` : ""}
+    <div class="field"><label for="nCliente">Nombre del cliente</label><input id="nCliente" maxlength="60" autocomplete="off" placeholder="Carlos Gómez"></div>
+    <div class="field"><label for="nTel">WhatsApp del cliente</label><input id="nTel" inputmode="tel" autocomplete="off" placeholder="310 555 1234"></div>
+    <div class="field"><span class="flabel" id="pagoLbl">¿El cliente ya te pagó?</span>
+      <div class="seg" role="group" aria-labelledby="pagoLbl">
+        <button type="button" data-pago="si" aria-pressed="${pago}">Sí, ya pagó</button>
+        <button type="button" data-pago="no" aria-pressed="${!pago}">Todavía no</button>
+      </div>
     </div>
-    <p class="note">Al marcarlo pagado se genera el comprobante y el número queda bloqueado.</p>`;
+    <div class="field" id="refField"${pago ? "" : " hidden"}><label for="nRef">Referencia del pago Nequi (opcional)</label><input id="nRef" maxlength="40" placeholder="M1234567"></div>
+    <p id="nErr" class="err" hidden></p>
+    <button type="button" class="primary full" id="nGo" data-act="${pago ? "pagar" : "apartar"}">${pago ? "Marcar pagado y crear comprobante" : "Apartar número"}</button>
+    <p class="note" id="nHint">${pago ? "El número queda bloqueado a nombre del cliente y se crea el comprobante para enviarle." : "El número queda reservado. Después le envías tu Nequi por WhatsApp y confirmas cuando pague."}</p>`;
   $("#nCliente").focus();
 }
+function setPago(si){
+  sheet.pago = si;
+  document.querySelectorAll("[data-pago]").forEach(b => b.setAttribute("aria-pressed", String((b.dataset.pago === "si") === si)));
+  $("#refField").hidden = !si;
+  const go = $("#nGo"); go.dataset.act = si ? "pagar" : "apartar";
+  go.textContent = si ? "Marcar pagado y crear comprobante" : "Apartar número";
+  $("#nHint").textContent = si ? "El número queda bloqueado a nombre del cliente y se crea el comprobante para enviarle." : "El número queda reservado. Después le envías tu Nequi por WhatsApp y confirmas cuando pague.";
+}
+function fmtTel(t){ const d = digits(t); return d.length === 10 ? d.replace(/(\d{3})(\d{3})(\d{4})/, "$1 $2 $3") : String(t || ""); }
+let lastCliente = null;
 
 function showErr(id, msg){ const e = $(id); if (e){ e.textContent = msg; e.hidden = !msg; } }
 
@@ -498,12 +590,16 @@ async function cambiarNumero(kind){
     } else if (kind === "apartar"){
       if (now) throw new Error("Este número ya está apartado por " + now.cliente + ".");
       await store.setNumero(r.id, k, { estado:"apartado", cliente, telefono, apartadoEn: fechaHoy() });
+      lastCliente = { cliente, telefono };
+      vibrar(30);
       toast("Número " + k + " apartado para " + cliente);
     } else {
       if (!cur && now) throw new Error("Este número acaba de ser apartado por " + now.cliente + ".");
       const data = { estado:"pagado", cliente, telefono, ref, pagadoEn: fechaHoy(), codigo: codigo(r, k) };
       await store.setNumero(r.id, k, data);
       numeros[k] = data;
+      lastCliente = { cliente, telefono };
+      vibrar([40, 60, 40]);
       toast("Número " + k + " pagado y bloqueado");
     }
     sheet.busy = false; sheet.lastSt = null;
@@ -540,10 +636,15 @@ document.addEventListener("click", async e => {
   const t = e.target.closest("button, [data-act]");
   if (!t) { if (e.target.id === "overlay") closeSheet(); return; }
   if (t.dataset.n){ openSheet({type:"num", k:t.dataset.n}); return; }
-  if (t.dataset.f){ filtro = t.dataset.f; render(); return; }
+  if (t.dataset.f){ filtro = (t.dataset.f === filtro && t.dataset.f !== "todos") ? "todos" : t.dataset.f; render(); return; }
+  if (t.dataset.pago) return setPago(t.dataset.pago === "si");
   const a = t.dataset.act;
   if (t.id === "nuevaBtn" || a === "nueva") return openSheet({type:"nueva"});
   if (t.id === "closeBtn" || a === "cerrar") return closeSheet();
+  if (a === "usar-ultimo" && lastCliente){ $("#nCliente").value = lastCliente.cliente; $("#nTel").value = fmtTel(lastCliente.telefono); return; }
+  if (a === "liberar-pre"){ $("#libConfirm").hidden = false; t.hidden = true; return; }
+  if (a === "liberar-no"){ $("#libConfirm").hidden = true; $('[data-act="liberar-pre"]').hidden = false; return; }
+  if (a === "otro"){ closeSheet(); toast("Toca el siguiente número para " + (lastCliente?.cliente || "el cliente")); return; }
   if (a === "apartar" || a === "pagar" || a === "liberar") return cambiarNumero(a);
   if (a === "compartir" && sheet?.blob){
     const file = new File([sheet.blob], sheet.fileName, {type:"image/png"});
@@ -563,7 +664,17 @@ document.addEventListener("click", async e => {
   }
 });
 document.addEventListener("submit", e => { if (e.target.id === "fRifa") crearRifa(e); });
-document.addEventListener("input", e => { if (e.target.id === "busca"){ busca = e.target.value.trim(); render._focusBusca = true; render(); } });
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (el.id === "busca"){ busca = el.value.trim(); render._focusBusca = true; render(); return; }
+  if (el.id === "nTel" || el.id === "rNequi"){
+    const d = digits(el.value).slice(0, 10);
+    el.value = d.length > 6 ? d.replace(/(\d{3})(\d{3})(\d*)/, "$1 $2 $3") : d.length > 3 ? d.replace(/(\d{3})(\d*)/, "$1 $2") : d;
+  }
+  if (el.id === "rValor"){ const d = digits(el.value).slice(0, 9); el.value = d ? Number(d).toLocaleString("es-CO") : ""; }
+});
+/* Botón «atrás» de Android: cierra la ventana abierta en vez de salir de la app */
+window.addEventListener("popstate", () => { if (sheet) closeSheet(true); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && sheet) closeSheet(); });
 $("#rifaSel").addEventListener("change", e => selectRifa(e.target.value));
 

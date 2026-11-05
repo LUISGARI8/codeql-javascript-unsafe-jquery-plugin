@@ -16,6 +16,9 @@ Aplicación web para vender rifas, con:
 | `public/terminos.html`, `privacidad.html` | **Borradores** de Términos de uso y Política de datos (revisar antes de publicar) |
 | `functions/index.js` | Servidor: crea, verifica y cancela la suscripción; recibe el webhook de Mercado Pago |
 | `firestore.rules` | Reglas de seguridad de la base de datos |
+| `public/manifest.webmanifest`, `sw.js`, `icon-*.png` | App instalable en Android («Agregar a la pantalla principal») |
+
+> El talonario se edita en `../talonario/talonario.html`; después ejecute `../talonario/build.sh` para copiarlo aquí.
 
 ## Puesta en marcha (una sola vez)
 

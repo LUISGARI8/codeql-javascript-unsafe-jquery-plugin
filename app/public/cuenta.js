@@ -6,6 +6,25 @@ function show(id){ SCREENS.forEach(s => $(s).hidden = s !== id); }
 function msg(el, text){ const e = $(el); e.textContent = text || ""; e.hidden = !text; }
 function fechaLarga(ms){ return new Date(ms).toLocaleDateString("es-CO", { dateStyle: "long" }); }
 
+/* ---------- App instalable en Android ---------- */
+if ("serviceWorker" in navigator && location.protocol === "https:"){
+  navigator.serviceWorker.register("/sw.js").catch(() => {});
+}
+let installEvt = null;
+const yaDescartado = () => { try { return localStorage.getItem("talonario-instalar-no") === "1"; } catch(e){ return false; } };
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault(); installEvt = e;
+  if (!yaDescartado()) $("#installBar").hidden = false;
+});
+$("#installBtn").onclick = async () => {
+  if (!installEvt) return;
+  installEvt.prompt();
+  await installEvt.userChoice.catch(() => {});
+  installEvt = null; $("#installBar").hidden = true;
+};
+$("#installNo").onclick = () => { $("#installBar").hidden = true; try { localStorage.setItem("talonario-instalar-no", "1"); } catch(e){} };
+window.addEventListener("appinstalled", () => { $("#installBar").hidden = true; });
+
 if (typeof firebase === "undefined" || !firebase.apps || !firebase.apps.length){
   show("#authScreen");
   msg("#authErr", "La aplicación no está conectada a Firebase. Publícala con Firebase Hosting (ver README).");
