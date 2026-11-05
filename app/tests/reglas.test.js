@@ -29,5 +29,12 @@ const fs = require("fs");
   await r(1, "sin cuenta de suscripción: no escribe", assertFails(carl.doc("usuarios/carl/rifas/r1").set({ nombre: "x" })));
   await r(1, "otro usuario no lee rifas ajenas", assertFails(beto.doc("usuarios/ana/rifas/r1").get()));
   await r(1, "anónimo no lee nada", assertFails(anon.doc("usuarios/ana").get()));
+  // Rifa realizada: se cierra con ganador y ya no cambia
+  await r(1, "activa: registra ganador (finaliza)", assertSucceeds(ana.doc("usuarios/ana/rifas/r1").set({ nombre: "Moto", estado: "finalizada", ganador: { numero: "08", cliente: "Y" } })));
+  await r(1, "realizada: no se vende otro número", assertFails(ana.doc("usuarios/ana/rifas/r1/numeros/10").set({ estado: "pagado", cliente: "Q" })));
+  await r(1, "realizada: no se cambia el ganador", assertFails(ana.doc("usuarios/ana/rifas/r1").set({ nombre: "Moto", estado: "finalizada", ganador: { numero: "09", cliente: "Z" } })));
+  await r(1, "realizada: no se reabre", assertFails(ana.doc("usuarios/ana/rifas/r1").update({ estado: "activa" })));
+  await r(1, "realizada: se puede pasar al historial", assertSucceeds(ana.doc("usuarios/ana/rifas/r1").update({ archivada: true })));
+  await r(1, "realizada: no se borra", assertFails(ana.doc("usuarios/ana/rifas/r1").delete()));
   await env.cleanup();
 })();

@@ -21,16 +21,24 @@ service cloud.firestore {
 
       match /rifas/{rifaId} {
         allow read: if esDueno(uid);
-        allow create, update: if esDueno(uid) && suscrito(uid);
+        allow create: if esDueno(uid) && suscrito(uid);
+        // Una rifa realizada (con número ganador) ya no cambia; solo se puede pasar al historial.
+        allow update: if esDueno(uid) && suscrito(uid) && (
+          resource.data.get('estado', 'activa') != 'finalizada'
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['archivada']));
         allow delete: if false;
+
+        function rifaAbierta() {
+          return get(/databases/$(database)/documents/usuarios/$(uid)/rifas/$(rifaId)).data.get('estado', 'activa') != 'finalizada';
+        }
 
         match /numeros/{numero} {
           allow read: if esDueno(uid);
-          allow create: if esDueno(uid) && suscrito(uid) && estadoValido();
+          allow create: if esDueno(uid) && suscrito(uid) && rifaAbierta() && estadoValido();
           // Un número PAGADO queda bloqueado: no se puede modificar ni liberar.
-          allow update: if esDueno(uid) && suscrito(uid) && estadoValido()
+          allow update: if esDueno(uid) && suscrito(uid) && rifaAbierta() && estadoValido()
                         && resource.data.estado != 'pagado';
-          allow delete: if esDueno(uid) && suscrito(uid)
+          allow delete: if esDueno(uid) && suscrito(uid) && rifaAbierta()
                         && resource.data.estado != 'pagado';
         }
       }
