@@ -92,6 +92,15 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .confirm-sm{background:var(--ochre-bg);border:1.5px solid var(--ochre);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
 .confirm-sm p{margin:0}
 .n.res .tag{position:absolute;left:0;right:0;bottom:2px;font-family:var(--f-body);font-size:.5rem;letter-spacing:.06em;font-weight:700;color:var(--ochre)}
+.premio-foto{width:100%;max-height:320px;object-fit:cover;border-radius:10px;border:1.5px solid var(--rule);display:block}
+.foto-acc{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.foto-btn{width:100%;border:1.5px dashed var(--ochre);background:var(--ochre-bg);border-radius:10px;min-height:52px}
+.rc-foto{width:56px;height:56px;object-fit:cover;border-radius:8px;flex:none;border:1px solid var(--rule)}
+.foto-nueva{display:flex;gap:12px;align-items:center}
+.foto-nueva img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--rule)}
+.redes-btn{flex-direction:column;align-items:flex-start;gap:2px;width:100%;background:var(--stock);border:1.5px solid var(--ink);border-radius:12px;padding:12px 18px;text-align:left}
+.redes-btn b{font-family:var(--f-display);font-size:1.3rem}
+.redes-btn span{font-weight:400;color:var(--ink-soft);font-size:.9rem}
 /* barra superior */
 .bar{flex-wrap:nowrap}
 .bar-title{flex:1;min-width:0;font-family:var(--f-display);font-weight:800;font-size:1.35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -394,6 +403,11 @@ function render(){
   main.innerHTML = `
   <section class="rifa">
     <div class="rifa-main">
+      ${r.foto ? `<img class="premio-foto" src="${esc(r.foto)}" alt="Foto del premio: ${esc(r.premio)}">` : ""}
+      ${fin ? "" : `<div class="foto-acc">
+        <button type="button" class="${r.foto ? "ghost sm" : "foto-btn"}" data-act="foto">${r.foto ? "Cambiar foto" : "+ Agregar foto real del premio"}</button>
+        ${r.foto ? `<button type="button" class="linkbtn" data-act="foto-quitar">Quitar foto</button>` : ""}
+      </div>`}
       <span class="lbl">Rifa</span>
       <h2>${esc(r.nombre)}</h2>
       <div class="meta">
@@ -427,6 +441,7 @@ function render(){
       ${[["free","Libres",c.libres],["res","Apartados",c.res],["paid","Pagados",c.paid]].map(([k,l,n]) => `<button type="button" class="lg ${k}" data-f="${k}" aria-pressed="${filtro===k}"><span class="sw" aria-hidden="true"></span><span>${l}</span><b>${n}</b></button>`).join("")}
     </div>
   </section>
+  ${fin ? "" : `<button type="button" class="redes-btn" data-act="redes"><b>Imagen para redes sociales</b><span>Publica qué números quedan disponibles (${c.libres} de ${c.total})</span></button>`}
   ${c.paid + c.res === 0 && !fin ? `<ol class="guide" aria-label="Cómo vender un número">
     <li><span><b>Toca un número libre</b> en el talonario.</span></li>
     <li><span><b>Escribe el cliente</b> y dinos si ya pagó.</span></li>
@@ -460,14 +475,14 @@ function renderInicio(){
   const cardVenta = r => {
     const cn = r.conteo || {}, p = cn.pagados || 0, a = cn.apartados || 0;
     return `<button type="button" class="rcard" data-open="${esc(r.id)}">
-      <span class="rc-top"><b class="rc-name">${esc(r.nombre)}</b><span class="pill">En venta</span></span>
+      <span class="rc-top">${r.foto ? `<img class="rc-foto" src="${esc(r.foto)}" alt="">` : ""}<b class="rc-name">${esc(r.nombre)}</b><span class="pill">En venta</span></span>
       <span class="rc-meta">${esc(r.premio)}${r.fecha ? " · Sorteo: " + esc(r.fecha) : ""}</span>
       <span class="progress"><span class="p-paid" style="width:${p / r.cantidad * 100}%"></span><span class="p-res" style="width:${a / r.cantidad * 100}%"></span></span>
       <span class="rc-foot"><span>${p} de ${r.cantidad} pagados${a ? " · " + a + " apartados" : ""}</span><b>${money(p * r.valor)}</b></span>
     </button>`;
   };
   const cardHecha = r => `<button type="button" class="rcard done" data-open="${esc(r.id)}">
-      <span class="rc-top"><b class="rc-name">${esc(r.nombre)}</b><span class="pill paid">Realizada</span></span>
+      <span class="rc-top">${r.foto ? `<img class="rc-foto" src="${esc(r.foto)}" alt="">` : ""}<b class="rc-name">${esc(r.nombre)}</b><span class="pill paid">Realizada</span></span>
       <span class="rc-win">${ganadorTxt(r)}</span>
       <span class="rc-foot"><span>${r.fecha ? "Sorteo: " + esc(r.fecha) : "Realizada " + esc(r.finalizadaTxt || "")}</span><b>${money(r.resumen?.recaudado)}</b></span>
     </button>`;
@@ -618,8 +633,15 @@ async function boletaPNG(o){
   [M, M + CW].forEach(cx => { ctx.beginPath(); ctx.arc(cx, yP, 26, 0, Math.PI*2); ctx.fill(); });
   return new Promise(res => cv.toBlob(res, "image/png"));
 }
+/* Dentro de la app de Android (APK) estas funciones las hace el propio celular */
+const NATIVO = window.Rifa07Android || null;
+function blobBase64(blob){
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(blob); });
+}
+async function copiarTexto(t){ if (NATIVO){ NATIVO.copy(t); return; } await navigator.clipboard.writeText(t); }
 async function descargar(){
   const blob = sheet.blob, name = sheet.fileName;
+  if (NATIVO){ toast(NATIVO.saveImage(await blobBase64(blob), name)); return; }
   try {
     const dl = window.claude?.use ? await window.claude.use("downloads") : null;
     if (dl){ await dl.save({ filename: name, data: blob }); toast("Imagen guardada"); return; }
@@ -690,6 +712,9 @@ function drawSheet(soft){
         <div class="field"><label for="rLoteria">Juega con (lotería)</label><input id="rLoteria" maxlength="60" placeholder="Lotería de Medellín, 2 últimas cifras"></div>
         <div class="field"><label for="rFecha">Fecha del sorteo</label><input id="rFecha" type="date"></div>
       </div>
+      <div class="field"><span class="flabel">Foto del premio (opcional)</span>
+        <div class="foto-nueva"><img id="fotoPrev" alt="" hidden><button type="button" class="ghost" data-act="foto-nueva" id="fotoNuevaBtn">+ Agregar foto</button></div>
+      </div>
       <p id="rErr" class="err" hidden></p>
       <div class="actions"><button type="button" class="ghost" data-act="cerrar">Cancelar</button><button class="primary" type="submit">Crear talonario</button></div>
     </form>`;
@@ -698,6 +723,7 @@ function drawSheet(soft){
   }
   if (sheet.type === "ganador") return drawGanador();
   if (sheet.type === "resultado") return drawResultado();
+  if (sheet.type === "redes") return drawRedes();
   const r = activa, k = sheet.k, v = numeros[k];
   title.textContent = "Número " + k;
   const st = v?.estado || "libre";
@@ -813,6 +839,129 @@ async function finalizarRifa(){
     else { closeSheet(); toast("Rifa cerrada sin ganador"); }
   } catch(e){ b.disabled = false; showErr("#gErr", "No se pudo cerrar la rifa: " + (e?.message || "revisa tu conexión")); }
 }
+/* ---------- Foto real del premio ---------- */
+let fotoDestino = null;
+const fotoInput = document.createElement("input");
+fotoInput.type = "file"; fotoInput.accept = "image/*"; fotoInput.hidden = true; fotoInput.id = "fotoInput";
+document.body.appendChild(fotoInput);
+/* Reduce la foto (máx. ~900 px, JPEG) para que quepa en el almacenamiento sin ocupar casi espacio */
+async function leerFoto(file){
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    let max = 900, q = 0.8, out = "";
+    for (let t = 0; t < 7; t++){
+      const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const cv = document.createElement("canvas"); cv.width = Math.round(img.naturalWidth * s); cv.height = Math.round(img.naturalHeight * s);
+      const x = cv.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, cv.width, cv.height); x.drawImage(img, 0, 0, cv.width, cv.height);
+      out = cv.toDataURL("image/jpeg", q);
+      if (out.length < 170000) break;
+      max = Math.round(max * 0.85); q = Math.max(0.55, q - 0.06);
+    }
+    return out;
+  } finally { URL.revokeObjectURL(url); }
+}
+fotoInput.addEventListener("change", async () => {
+  const file = fotoInput.files && fotoInput.files[0]; fotoInput.value = "";
+  if (!file) return;
+  let foto;
+  try { foto = await leerFoto(file); } catch(e){ toast("No se pudo leer esa imagen. Prueba con otra foto (JPG o PNG)."); return; }
+  if (fotoDestino === "nueva" && sheet?.type === "nueva"){
+    sheet.fotoNueva = foto; const p = $("#fotoPrev"); p.src = foto; p.hidden = false; $("#fotoNuevaBtn").textContent = "Cambiar foto";
+  } else if (fotoDestino === "rifa" && activa && activa.estado !== "finalizada"){
+    try { await store.saveRifa({ ...activa, foto }); toast("Foto del premio guardada"); }
+    catch(e){ toast("No se pudo guardar la foto: " + (e?.message || "revisa tu conexión")); }
+  }
+});
+function cargarImg(src){ return new Promise(res => { if (!src) return res(null); const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }); }
+
+/* ---------- Imagen de números disponibles para redes sociales ---------- */
+function textoRedes(r){
+  const c = counts();
+  return `🎟️ *${r.nombre}*\nPremio: ${r.premio}\nValor del número: ${money(r.valor)}\n` +
+    `${r.loteria ? "Juega con " + r.loteria + (r.fecha ? " el " + r.fecha : "") + "\n" : ""}` +
+    `\nQuedan *${c.libres}* números disponibles. ¡Aparta el tuyo!\nPaga por Nequi al ${r.nequi} y escríbeme por WhatsApp.`;
+}
+function drawRedes(){
+  const r = activa, c = counts();
+  $("#sheetTitle").textContent = "Imagen para redes";
+  sheet.copyText = textoRedes(r);
+  $("#sheetBody").innerHTML = `
+    <p class="note" style="margin:0">Muestra en claro los <b>${c.libres} números disponibles</b> y en oscuro los vendidos o apartados. No aparece ningún nombre de comprador.</p>
+    <div class="recibo-img" id="rcBox"><span class="note">Preparando la imagen…</span></div>
+    <button type="button" class="primary full big-btn" data-act="compartir" disabled>Compartir imagen</button>
+    <button type="button" class="full" data-act="descargar" disabled>Guardar imagen</button>
+    <div class="step">Texto para acompañar la publicación</div>
+    <div class="recibo">${esc(sheet.copyText.replace(/\*/g, ""))}</div>
+    <button type="button" class="ghost full" data-act="copiar-redes">Copiar texto</button>`;
+  cargarImagen(numerosPNG(r), "numeros-disponibles-" + r.id.slice(-4) + ".png",
+    `Números disponibles de la rifa ${r.nombre}`, sheet.copyText.replace(/\*/g, ""));
+}
+async function numerosPNG(r){
+  await fontsReady();
+  const c = counts(), grande = r.cantidad > 100, cols = grande ? 25 : 10, filas = r.cantidad / cols;
+  const W = 1080, H = grande ? 1920 : 1350, M = 56;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const ctx = cv.getContext("2d"); ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+  ctx.fillStyle = RC.paper; ctx.fillRect(0, 0, W, H);
+  /* encabezado (con la foto del premio a la derecha, si hay) */
+  const foto = await cargarImg(r.foto), fS = foto ? (grande ? 300 : 260) : 0, tW = W - 2*M - (fS ? fS + 32 : 0);
+  ctx.font = `800 ${fS ? 70 : 82}px ${FD}`;
+  const lh = fS ? 74 : 86, titulo = wrapText(ctx, String(r.nombre).toUpperCase(), tW).slice(0, fS ? 3 : 2);
+  let y = M + 40;
+  ctx.font = `700 34px ${FB}`;
+  const premioL = wrapText(ctx, "Premio: " + r.premio, tW).slice(0, 2);
+  ctx.font = `400 28px ${FB}`;
+  const loteL = (r.loteria || r.fecha) ? wrapText(ctx, [r.loteria ? "Juega con " + r.loteria : "", r.fecha].filter(Boolean).join(" · "), tW).slice(0, 2) : [];
+  const textoH = M + 40 + titulo.length * lh + 16 + premioL.length * 44 + (loteL.length ? 46 + (loteL.length - 1) * 36 : 0) + 34;
+  const headH = Math.max(textoH, fS + 2 * 44);
+  ctx.fillStyle = RC.ink; ctx.fillRect(0, 0, W, headH);
+  ctx.fillStyle = RC.ochre; ctx.font = `700 30px ${FB}`; spacing(ctx, 6); ctx.fillText("¡APARTA TU NÚMERO!", M, y); spacing(ctx, 0);
+  ctx.fillStyle = RC.white; ctx.font = `800 ${fS ? 70 : 82}px ${FD}`;
+  titulo.forEach(l => { y += lh; ctx.fillText(l, M, y); });
+  y += 16; ctx.font = `700 34px ${FB}`; premioL.forEach(l => { y += 44; ctx.fillText(l, M, y); });
+  if (loteL.length){ ctx.globalAlpha = .8; ctx.font = `400 28px ${FB}`; y += 10;
+    loteL.forEach(l => { y += 36; ctx.fillText(l, M, y); }); ctx.globalAlpha = 1; }
+  if (foto){
+    const fx = W - M - fS, fy = (headH - fS) / 2, s = Math.min(foto.naturalWidth, foto.naturalHeight);
+    ctx.save(); rr(ctx, fx, fy, fS, fS, 22); ctx.clip();
+    ctx.drawImage(foto, (foto.naturalWidth - s) / 2, (foto.naturalHeight - s) / 2, s, s, fx, fy, fS, fS);
+    ctx.restore(); rr(ctx, fx, fy, fS, fS, 22); ctx.strokeStyle = RC.ochre; ctx.lineWidth = 6; ctx.stroke();
+  }
+  /* cuadrícula */
+  const pieH = 220, leyH = 76, gap = grande ? 5 : 12;
+  const top = headH + 40, bottom = H - pieH - leyH;
+  const cw = (W - 2*M - (cols - 1) * gap) / cols, ch = (bottom - top - (filas - 1) * gap) / filas;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (let i = 0; i < r.cantidad; i++){
+    const k = pad(i, r.cantidad), v = numeros[k], tomado = v && (v.estado === "pagado" || v.estado === "apartado");
+    const x = M + (i % cols) * (cw + gap), yy = top + Math.floor(i / cols) * (ch + gap);
+    rr(ctx, x, yy, cw, ch, grande ? 5 : 12);
+    if (tomado){ ctx.fillStyle = RC.ink; ctx.fill(); ctx.fillStyle = "#4f6a5d"; }
+    else { ctx.fillStyle = RC.stock; ctx.fill(); ctx.strokeStyle = RC.ochre; ctx.lineWidth = grande ? 1.5 : 3; ctx.stroke(); ctx.fillStyle = RC.ink; }
+    ctx.font = `800 ${Math.round(Math.min(ch * 0.58, cw * (grande ? 0.5 : 0.48)))}px ${FD}`;
+    ctx.fillText(k, x + cw / 2, yy + ch / 2 + 2);
+    if (tomado){ ctx.strokeStyle = "#4f6a5d"; ctx.lineWidth = grande ? 1.5 : 3; ctx.beginPath();
+      ctx.moveTo(x + cw * .22, yy + ch * .78); ctx.lineTo(x + cw * .78, yy + ch * .22); ctx.stroke(); }
+  }
+  /* leyenda */
+  ctx.textAlign = "left"; ctx.textBaseline = "middle";
+  const ly = bottom + leyH / 2 + 4;
+  rr(ctx, M, ly - 16, 32, 32, 7); ctx.fillStyle = RC.stock; ctx.fill(); ctx.strokeStyle = RC.ochre; ctx.lineWidth = 3; ctx.stroke();
+  ctx.fillStyle = RC.ink; ctx.font = `600 28px ${FB}`; ctx.fillText("Disponible", M + 46, ly);
+  rr(ctx, M + 250, ly - 16, 32, 32, 7); ctx.fillStyle = RC.ink; ctx.fill();
+  ctx.fillStyle = RC.ink; ctx.fillText("Vendido", M + 296, ly);
+  ctx.textAlign = "right"; ctx.font = `800 40px ${FD}`; ctx.fillText(`Quedan ${c.libres} de ${c.total}`, W - M, ly + 2);
+  /* pie: valor y Nequi */
+  ctx.fillStyle = RC.ochre; ctx.fillRect(0, H - pieH, W, pieH);
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic"; ctx.fillStyle = RC.ink;
+  ctx.font = `700 28px ${FB}`; spacing(ctx, 4); ctx.fillText("VALOR DEL NÚMERO", M, H - pieH + 62); spacing(ctx, 0);
+  ctx.font = `800 96px ${FD}`; ctx.fillText(money(r.valor), M, H - pieH + 156);
+  ctx.textAlign = "right"; ctx.font = `700 30px ${FB}`; ctx.fillText("Paga por Nequi", W - M, H - pieH + 92);
+  ctx.font = `800 54px ${FD}`; ctx.fillText(fmtTel(r.nequi), W - M, H - pieH + 150);
+  ctx.font = `400 24px ${FB}`; ctx.fillText("y escríbeme para apartar el tuyo", W - M, H - pieH + 188);
+  return new Promise(res => cv.toBlob(res, "image/png"));
+}
 function drawResultado(){
   const r = activa, g = r.ganador;
   $("#sheetTitle").textContent = "¡Tenemos ganador!";
@@ -898,6 +1047,7 @@ async function crearRifa(ev){
   const r = { id: uid(), nombre: g("#rNombre"), premio: g("#rPremio"), valor, cantidad: Number($("#rCant").value),
     nequi: g("#rNequi"), titular: g("#rTitular"), loteria: g("#rLoteria"),
     fecha: fecha ? new Date(fecha + "T12:00").toLocaleDateString("es-CO",{dateStyle:"long"}) : "", creada: Date.now() };
+  if (sheet?.fotoNueva) r.foto = sheet.fotoNueva;
   try {
     await store.saveRifa(r);
     if (!rifas.find(x => x.id === r.id)) rifas = [r, ...rifas];
@@ -918,6 +1068,14 @@ document.addEventListener("click", async e => {
   const a = t.dataset.act;
   if (a === "ganador") return openSheet({ type: "ganador" });
   if (a === "ver-ganador") return openSheet({ type: "resultado" });
+  if (a === "redes") return openSheet({ type: "redes" });
+  if (a === "foto" || a === "foto-nueva"){ fotoDestino = a === "foto" ? "rifa" : "nueva"; fotoInput.click(); return; }
+  if (a === "foto-quitar" && activa){ const { foto, ...resto } = activa; store.saveRifa(resto).then(() => toast("Foto quitada")).catch(() => toast("No se pudo quitar la foto")); return; }
+  if (a === "copiar-redes"){
+    try { await copiarTexto(sheet.copyText); toast("Texto copiado: pégalo junto a la imagen"); }
+    catch(_){ toast("No se pudo copiar en este navegador"); }
+    return;
+  }
   if (a === "g-pre"){
     const k = $("#gNum").value, v = numeros[k];
     $("#gConfirmTxt").innerHTML = `¿Confirmas que cayó el <b>${esc(k)}</b>${v?.estado === "pagado" ? " y que ganó <b>" + esc(v.cliente) + "</b>" : ""}? La rifa se cierra: ya no se podrán vender ni cambiar números.`;
@@ -926,7 +1084,7 @@ document.addEventListener("click", async e => {
   if (a === "g-no"){ $("#gConfirm").hidden = true; const p = $('[data-act="g-pre"]'); if (p) p.hidden = false; $("#gNum").focus(); return; }
   if (a === "g-ok") return finalizarRifa();
   if (a === "copiar-anuncio"){
-    try { await navigator.clipboard.writeText(anuncioResultado(activa)); toast("Anuncio copiado: pégalo en tus grupos o estados"); }
+    try { await copiarTexto(anuncioResultado(activa)); toast("Anuncio copiado: pégalo en tus grupos o estados"); }
     catch(_){ toast("No se pudo copiar en este navegador"); }
     return;
   }
@@ -941,6 +1099,7 @@ document.addEventListener("click", async e => {
   if (a === "otro"){ closeSheet(); toast("Toca el siguiente número para " + (lastCliente?.cliente || "el cliente")); return; }
   if (a === "apartar" || a === "pagar" || a === "liberar") return cambiarNumero(a);
   if (a === "compartir" && sheet?.blob){
+    if (NATIVO){ NATIVO.shareImage(await blobBase64(sheet.blob), sheet.fileName, sheet.shareText || ""); return; }
     const file = new File([sheet.blob], sheet.fileName, {type:"image/png"});
     try {
       if (navigator.canShare && navigator.canShare({files:[file]})){
@@ -953,7 +1112,7 @@ document.addEventListener("click", async e => {
   }
   if (a === "descargar" && sheet?.blob) return descargar();
   if (a === "copiar"){
-    try { await navigator.clipboard.writeText(sheet.copyText); toast("Comprobante copiado"); }
+    try { await copiarTexto(sheet.copyText); toast("Comprobante copiado"); }
     catch(_){ const sel = getSelection(), range = document.createRange(); range.selectNodeContents($(".recibo")); sel.removeAllRanges(); sel.addRange(range); toast("Texto seleccionado: cópialo"); }
   }
 });
